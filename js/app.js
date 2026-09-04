@@ -1,7 +1,7 @@
 /* ==========================================================================
    UI-Verdrahtung: Umschalter, Dropdown, Tastenfeld, Notiz, Position,
    Einstellungen, Service-Worker.
-   Datenquelle: data/gears.json (FMS.DATA_URL) bzw. window.FMS_DATA (Vorschau).
+   Datenquelle: data/gears.js (setzt window.FMS_DATA, per <script> geladen).
    ========================================================================== */
 (function(){
   "use strict";
@@ -21,12 +21,12 @@
     try{ localStorage.setItem(FMS.STORAGE_KEY, JSON.stringify(cfg)); }catch(e){}
   }
 
-  /* ---------- Daten laden ---------- */
-  async function loadData(){
-    if(window.FMS_DATA) return window.FMS_DATA;            // Vorschau / Override
-    const res = await fetch(FMS.DATA_URL, { cache:"no-store" });
-    if(!res.ok) throw new Error("HTTP " + res.status);
-    return await res.json();
+  /* ---------- Daten laden ----------
+     Kommen aus data/gears.js (setzt window.FMS_DATA, per <script> geladen).
+     Das funktioniert lokal (file://) und gehostet gleichermassen. */
+  function loadData(){
+    if(window.FMS_DATA && Array.isArray(window.FMS_DATA.fahrzeuge)) return window.FMS_DATA;
+    throw new Error("FMS_DATA fehlt (data/gears.js nicht geladen)");
   }
 
   /* ---------- Tastenfeld ---------- */
@@ -205,7 +205,7 @@
     try{
       data = await loadData();
     }catch(e){
-      toast("data/gears.json konnte nicht geladen werden.", "err");
+      toast("data/gears.js nicht geladen. Datei vorhanden?", "err");
     }
     populateSelect();
 

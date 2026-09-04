@@ -60,19 +60,20 @@ erfasst; das Senden ist mit `TODO` in [`js/app.js`](js/app.js) markiert.
 
 ## Fahrzeuge & Gruppen pflegen
 
-Alle Fahrzeuge und Gruppen stehen in [`data/gears.json`](data/gears.json). Diese
-Datei wird beim Start geladen und befuellt das Dropdown. Ueber den Umschalter
-oben wird zwischen **Fahrzeugen** und **Gruppen** gewechselt.
+Alle Fahrzeuge und Gruppen stehen in [`data/gears.js`](data/gears.js). Die Datei
+wird per `<script>` geladen (setzt `window.FMS_DATA`) und funktioniert dadurch
+sowohl lokal per Doppelklick (`file://`) als auch gehostet. Inhalt ist JSON, nur
+mit `window.FMS_DATA =` am Anfang und `;` am Ende:
 
-```json
-{
+```js
+window.FMS_DATA = {
   "fahrzeuge": [
     { "name": "Heros RS 21/10", "issi": "5781238" }
   ],
   "gruppen": [
     { "name": "ZTr", "fahrzeuge": ["Heros RS 21/10", "Heros RS 86/21"] }
   ]
-}
+};
 ```
 
 - **ISSI eintragen:** bei jedem Fahrzeug das leere `issi`-Feld ausfuellen.
@@ -90,7 +91,7 @@ fms-tool/
 ├── css/
 │   └── styles.css              # gesamtes Styling (Dark-Cockpit-Theme)
 ├── data/
-│   └── gears.json              # Fahrzeuge (mit ISSI) + Gruppen
+│   └── gears.js                # Fahrzeuge (mit ISSI) + Gruppen (per script geladen)
 ├── js/
 │   ├── config.js               # Endpunkt, Datenpfad, nicht-geheime Standardwerte
 │   ├── statuses.js             # FMS-Statustabelle + Reihenfolge

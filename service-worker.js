@@ -9,7 +9,7 @@ const ASSETS = [
   "./js/statuses.js",
   "./js/api.js",
   "./js/app.js",
-  "./data/gears.json",
+  "./data/gears.js",
   "./manifest.webmanifest",
   "./icons/icon.svg"
 ];

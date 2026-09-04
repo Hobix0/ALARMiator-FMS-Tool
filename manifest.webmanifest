@@ -1,7 +1,7 @@
 {
-  "name": "FMS-Bedienteil",
+  "name": "FMS-Tool",
   "short_name": "FMS",
-  "description": "FMS-Statusgeber fuer Alarminator (THW)",
+  "description": "FMS-Statusgeber für Alarminator",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
