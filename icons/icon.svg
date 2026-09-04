@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="FMS">
+  <rect width="512" height="512" rx="96" fill="#002d8f"/>
+  <rect x="56" y="56" width="400" height="400" rx="64" fill="none" stroke="#2f6fe0" stroke-width="14"/>
+  <text x="256" y="300" text-anchor="middle" font-family="Arial, Helvetica, sans-serif"
+        font-size="150" font-weight="700" fill="#ffffff" letter-spacing="6">FMS</text>
+  <text x="256" y="380" text-anchor="middle" font-family="Arial, Helvetica, sans-serif"
+        font-size="52" font-weight="600" fill="#7fd08b" letter-spacing="10">0&#8211;9</text>
+</svg>

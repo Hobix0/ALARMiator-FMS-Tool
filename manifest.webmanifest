@@ -1,0 +1,14 @@
+{
+  "name": "FMS-Bedienteil",
+  "short_name": "FMS",
+  "description": "FMS-Statusgeber fuer Alarminator (THW)",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0e14",
+  "theme_color": "#002d8f",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1a3b">
+<meta name="description" content="FMS-Statusgeber für Alarminator (THW)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon.svg">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+<title>FMS-Bedienteil</title>
+</head>
+<body>
+
+  <header class="topbar">
+    <h2 class="logo">FMS-Tool</h2>
+    <div class="title" id="title">&mdash;</div>
+    <button class="gear" id="btnSettings" aria-label="Einstellungen">&#9881;</button>
+  </header>
+
+  <!-- Umschalter Fahrzeuge/Gruppen + Auswahl -->
+  <div class="selector">
+    <div class="seg" role="tablist">
+      <button id="segFahrzeuge" class="active" role="tab">Fahrzeuge</button>
+      <button id="segGruppen" role="tab">Gruppen</button>
+    </div>
+    <div class="select-wrap">
+      <select id="target" aria-label="Auswahl"></select>
+    </div>
+  </div>
+
+  <div class="noterow">
+    <input class="note" id="note" placeholder="Freitext Notiz" autocomplete="off">
+    <button class="send" id="btnNote" aria-label="Notiz senden">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 2 11 13"></path><path d="M22 2 15 22l-4-9-9-4 20-7z"></path>
+      </svg>
+    </button>
+  </div>
+
+  <button class="poslink" id="btnPos">Aktuelle Position setzen</button>
+
+  <div class="keypad" id="keypad"><!-- Tasten per JS --></div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Einstellungen -->
+  <div class="sheet-backdrop" id="sheetBackdrop">
+    <div class="sheet" role="dialog" aria-label="Einstellungen">
+      <h2>Einstellungen</h2>
+      <p class="hint">API-URL und Token. Wird nur lokal auf diesem Ger&auml;t gespeichert &ndash; nichts wird ins Repo committet. Fahrzeuge und ISSI werden in <code>data/gears.json</code> gepflegt.</p>
+
+      <div class="field">
+        <label for="fBase">API-Basis-URL</label>
+        <input id="fBase" placeholder="https://alarm.thw-remscheid.de">
+      </div>
+      <div class="field">
+        <label for="fToken">Token</label>
+        <input id="fToken" placeholder="Token aus Alarminator" autocomplete="off">
+      </div>
+
+      <div class="switch" style="margin-bottom:12px">
+        <span>Testmodus (nichts wirklich senden)</span>
+        <input type="checkbox" id="fTest">
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="btnClose">Schlie&szlig;en</button>
+        <button class="btn primary" id="btnSave">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/statuses.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
