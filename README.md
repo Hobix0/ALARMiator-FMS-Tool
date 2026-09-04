@@ -24,13 +24,6 @@ keine Build-Kette, als PWA aufs Handy installierbar.
 | 4 | Ankunft Einsatzstelle |
 | 5 | Sprechwunsch |
 | 6 | Ausser Dienst / nicht einsatzklar |
-| 7 | Einsatzgebunden * |
-| 8 | Bedingt einsatzbereit * |
-| 9 | Verstanden / Bestaetigung |
-| 0 | Eigener Notruf |
-
-\* Belegung von 2, 6, 7, 8, 9 ist je Landkreis unterschiedlich. Texte zentral in
-[`js/statuses.js`](js/statuses.js) anpassen.
 
 ## API-Anbindung
 

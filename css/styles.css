@@ -164,3 +164,201 @@ select#target:focus{outline:2px solid var(--accent);outline-offset:0;border-colo
 @media (prefers-reduced-motion: reduce){
   *{animation:none !important;transition:none !important}
 }
+
+
+
+
+
+
+
+/* Custom Dropdown Styling */
+.custom-select {
+  position: relative;
+  width: 100%;
+}
+
+.select-trigger {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 12px;
+  background: #142850;
+  color: #fff;
+  border: 1px solid #27496d;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.select-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #142850;
+  border: 1px solid #27496d;
+  border-radius: 6px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+.custom-select.open .select-dropdown {
+  display: block;
+}
+
+.custom-select.open .arrow {
+  transform: rotate(180deg);
+}
+
+.select-option {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #1c3b6f;
+}
+
+.select-option:last-child {
+  border-bottom: none;
+}
+
+.select-option:hover,
+.select-option.selected {
+  background-color: #1c3b6f;
+}
+
+.select-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.arrow {
+  font-size: 0.8rem;
+  margin-left: 8px;
+  transition: transform 0.2s;
+}
+
+/* Status Badges & Farben */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  margin-right: 10px;
+  flex-shrink: 0;
+  color: #000;
+  background-color: #7f8c8d; /* Standard/Unbekannt */
+}
+
+.status-badge[data-status="0"] { background-color: #95a5a6; color: #fff; }
+.status-badge[data-status="1"] { background-color: #2ecc71; } /* Frei auf Funk */
+.status-badge[data-status="2"] { background-color: #27ae60; color: #fff; } /* Einsatzbereit Wache */
+.status-badge[data-status="3"] { background-color: #f1c40f; } /* Einsatz ab */
+.status-badge[data-status="4"] { background-color: #e67e22; color: #fff; } /* Am Einsatzort */
+.status-badge[data-status="5"] { background-color: #e74c3c; color: #fff; } /* Sprechwunsch */
+.status-badge[data-status="6"] { background-color: #34495e; color: #fff; } /* Nicht einsatzbereit */
+.status-badge[data-status="7"] { background-color: #3498db; color: #fff; } /* Patienten aufgenommen */
+.status-badge[data-status="8"] { background-color: #9b59b6; color: #fff; } /* Transportziel an */
+.status-badge[data-status="9"] { background-color: #16a085; color: #fff; } /* Arzt gefordert */
+
+
+
+
+
+/* PIN-Overlay */
+.pin-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(11, 26, 59, 0.95);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.pin-backdrop.hidden {
+  display: none;
+}
+
+.pin-card {
+  background: #142850;
+  border: 1px solid #27496d;
+  padding: 24px;
+  border-radius: 12px;
+  text-align: center;
+  width: 280px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+
+.pin-card h3 {
+  margin: 0 0 6px 0;
+  color: #fff;
+}
+
+.pin-hint {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  margin-bottom: 16px;
+}
+
+.pin-dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.pin-dots .dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid #27496d;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.pin-dots .dot.active {
+  background: #3498db;
+  border-color: #3498db;
+  box-shadow: 0 0 8px rgba(52, 152, 219, 0.6);
+}
+
+/* PIN-Keypad Grid */
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pin-btn {
+  background: #1c3b6f;
+  color: #fff;
+  border: none;
+  padding: 14px 0;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.pin-btn:active {
+  background: #27496d;
+}
+
+.pin-btn.del { background: #e74c3c; }
+.pin-btn.ok { background: #2ecc71; }

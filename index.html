@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="icons/icon.svg">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/styles.css">
-<title>FMS-Bedienteil</title>
+<title>FMS Tool</title>
 </head>
 <body>
 
@@ -19,14 +19,23 @@
     <button class="gear" id="btnSettings" aria-label="Einstellungen">&#9881;</button>
   </header>
 
-  <!-- Umschalter Fahrzeuge/Gruppen + Auswahl -->
+<!-- Umschalter Fahrzeuge/Gruppen + Auswahl -->
   <div class="selector">
     <div class="seg" role="tablist">
       <button id="segFahrzeuge" class="active" role="tab">Fahrzeuge</button>
       <button id="segGruppen" role="tab">Gruppen</button>
     </div>
-    <div class="select-wrap">
-      <select id="target" aria-label="Auswahl"></select>
+    
+    <!-- Custom Dropdown mit Status-Badges -->
+    <div class="custom-select" id="customSelect">
+      <button type="button" class="select-trigger" id="selectTrigger" aria-haspopup="listbox" aria-expanded="false">
+        <span class="status-badge" id="selectedBadge">--</span>
+        <span class="select-label" id="selectedLabel">Wähle...</span>
+        <span class="arrow">▼</span>
+      </button>
+      <div class="select-dropdown" id="selectDropdown" role="listbox">
+        <!-- Einträge werden per JS befüllt -->
+      </div>
     </div>
   </div>
 
@@ -60,8 +69,44 @@
         <button class="btn" id="btnClose">Schlie&szlig;en</button>
         <button class="btn primary" id="btnSave">Speichern</button>
       </div>
+      <footer>
+        <p>FMS Tool f&uuml;r Alarminator (c) Luca Theis 2026 &ndash; <a href="" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+      </footer>
     </div>
   </div>
+
+
+<!-- PIN-Abfrage Overlay -->
+<div class="pin-backdrop" id="pinBackdrop">
+  <div class="pin-card">
+    <h3>PIN-Eingabe</h3>
+    <p class="pin-hint">Bitte PIN eingeben, um fortzufahren.</p>
+
+    <!-- Punkte zur Anzeige der eingegebenen Stellen -->
+    <div class="pin-dots" id="pinDots">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </div>
+
+    <!-- Tastenfeld für PIN -->
+    <div class="pin-keypad">
+      <button class="pin-btn" data-val="1">1</button>
+      <button class="pin-btn" data-val="2">2</button>
+      <button class="pin-btn" data-val="3">3</button>
+      <button class="pin-btn" data-val="4">4</button>
+      <button class="pin-btn" data-val="5">5</button>
+      <button class="pin-btn" data-val="6">6</button>
+      <button class="pin-btn" data-val="7">7</button>
+      <button class="pin-btn" data-val="8">8</button>
+      <button class="pin-btn" data-val="9">9</button>
+      <button class="pin-btn del" id="btnPinClear">C</button>
+      <button class="pin-btn" data-val="0">0</button>
+      <button class="pin-btn ok" id="btnPinSubmit">✓</button>
+    </div>
+  </div>
+</div>
 
   <script src="js/config.js"></script>
   <script src="js/statuses.js"></script>

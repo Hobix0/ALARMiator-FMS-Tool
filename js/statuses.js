@@ -1,6 +1,3 @@
-/* FMS-Statuskennungen (THW).
-   Hinweis: Status 2, 6, 7, 8, 9 werden je Landkreis unterschiedlich belegt.
-   Lokal abweichende Bedeutungen sind mit * markiert und hier zentral anpassbar. */
 window.FMS = window.FMS || {};
 
 FMS.STATUS = {
