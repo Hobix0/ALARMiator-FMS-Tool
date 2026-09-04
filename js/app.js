@@ -123,7 +123,7 @@
     } catch(e) {}
   }
 
-  /* ---------- Tastenfeld ---------- */
+ /* ---------- Tastenfeld ---------- */
   function buildKeypad(){
     const keypad = $("keypad");
     if (!keypad) return;
@@ -133,15 +133,55 @@
       const b = document.createElement("button");
       b.className = "key" + (n === 0 ? " zero" : "");
       b.dataset.status = n;
-      b.textContent = n;
       b.setAttribute("aria-label", "Status " + n + ": " + s.label);
+
+      // Zahl und Beschriftung getrennt einfügen
+      b.innerHTML = `
+        <span class="key-num">${n}</span>
+        <span class="key-label">${s.label}</span>
+      `;
+
       b.addEventListener("click", () => onKey(n));
       keypad.appendChild(b);
     });
   }
+/* ---------- Tastenfeld Hervorhebung ---------- */
   function markSelected(n){
-    document.querySelectorAll(".key").forEach(k =>
-      k.classList.toggle("selected", Number(k.dataset.status) === n));
+    document.querySelectorAll(".key").forEach(k => {
+      const isSelected = Number(k.dataset.status) === Number(n);
+      k.classList.toggle("selected", isSelected);
+    });
+  }
+
+  /* ---------- UI bei Auswahlaktualisierung anpassen ---------- */
+  function updateSelectUI() {
+    const list = activeList();
+    const current = list.find(i => i.name === cfg.selected);
+    const badge = $("selectedBadge");
+    const label = $("selectedLabel");
+
+    if (current && badge && label) {
+      const statusNum = current.status !== undefined ? current.status : "?";
+      const text = cfg.mode === "gruppen"
+        ? current.name + " (" + ((current.fahrzeuge || []).length) + ")"
+        : current.name;
+
+      badge.textContent = statusNum;
+      badge.dataset.status = statusNum;
+      label.textContent = text;
+
+      // Status des ausgewählten Fahrzeugs auf den Tasten markieren
+      markSelected(statusNum);
+    } else if (badge && label) {
+      badge.textContent = "--";
+      badge.removeAttribute("data-status");
+      label.textContent = "Keine Auswahl";
+      markSelected(-1); // Markierungen entfernen
+    }
+
+    document.querySelectorAll(".select-option").forEach(opt => {
+      opt.classList.toggle("selected", opt.dataset.value === cfg.selected);
+    });
   }
 
   /* ---------- Toast ---------- */
@@ -272,14 +312,16 @@
     saveCfg();
   }
 
-/* ---------- Status senden & im Speicher aktualisieren ---------- */
+ /* ---------- Status senden, im Speicher sichern & UI aktualisieren ---------- */
   async function onKey(n){
-    markSelected(n);
     const target = currentTarget();
     if(!target || !target.members.length){
       toast(cfg.mode === "gruppen" ? "Gruppe ohne Fahrzeuge." : "Kein Fahrzeug gewaehlt.", "err");
       return;
     }
+    
+    // Tastenauswahl sofort blau markieren
+    markSelected(n);
     
     toast("Sende Status " + n + " \u2026");
     const results = await Promise.all(target.members.map(m =>
@@ -288,19 +330,25 @@
     const ok  = results.filter(r => r.ok).length;
     const tot = results.length;
     
-    // Status lokal für alle erfolgreichen (oder im Testmodus alle) Fahrzeuge speichern
+    // Status für das Fahrzeug / die Gruppe im Speicher sichern
     target.members.forEach((m, idx) => {
       if (results[idx].ok || cfg.test) {
-        // Status im aktiven Objekt aktualisieren
         const veh = data.fahrzeuge.find(f => f.name === m.name);
         if (veh) veh.status = n;
-        
-        // Im LocalStorage sichern
         saveVehicleStatus(m.name, n);
       }
     });
 
-    // Dropdown UI mit den neuen Status-Farben aktualisieren
+
+    /* Status dauerhaft im Browser sichern */
+  function saveVehicleStatus(vehicleName, newStatus) {
+    try {
+      const savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
+      savedStatuses[vehicleName] = newStatus;
+      localStorage.setItem("FMS_VEHICLE_STATUSES", JSON.stringify(savedStatuses));
+    } catch(e) {}
+  }
+    // Dropdown-Farben & Badges aktualisieren
     populateSelect();
 
     if(tot === 1){

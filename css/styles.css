@@ -362,3 +362,49 @@ select#target:focus{outline:2px solid var(--accent);outline-offset:0;border-colo
 
 .pin-btn.del { background: #e74c3c; }
 .pin-btn.ok { background: #2ecc71; }
+
+
+
+
+
+/* Tastenfeld Button-Layout */
+.keypad .key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  min-height: 64px; /* Ausreichend Platz für Text bieten */
+}
+
+.keypad .key .key-num {
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1.1;
+}
+
+.keypad .key .key-label {
+  font-size: 0.7rem;
+  font-weight: normal;
+  margin-top: 2px;
+  text-align: center;
+  opacity: 0.9;
+  line-height: 1;
+  word-break: break-word; /* Bricht lange Wörter ggf. um */
+}
+
+
+
+/* Ausgewählte Statustaste im Blauton */
+.keypad .key.selected {
+  background-color: #0066cc !important; /* Kräftiges THW/FMS-Blau */
+  color: #ffffff !important;
+  border-color: #3399ff !important;
+  box-shadow: 0 0 12px rgba(0, 102, 204, 0.7);
+  transform: scale(0.98);
+}
+
+/* Optional: Hover-Verhalten im ausgewählten Zustand */
+.keypad .key.selected:hover {
+  background-color: #0052a3 !important;
+}
