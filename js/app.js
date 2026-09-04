@@ -1,6 +1,6 @@
 /* ==========================================================================
-   UI-Verdrahtung: Umschalter, Dropdown, Tastenfeld, Position,
-   Einstellungen, Service-Worker.
+   UI-Verdrahtung: Umschalter, Custom-Dropdown, Tastenfeld, Position,
+   Einstellungen, Service-Worker, PIN-Sperre & LocalStorage-Status.
    Datenquelle: data/gears.js (setzt window.FMS_DATA, per <script> geladen).
    ========================================================================== */
 (function(){
@@ -9,6 +9,7 @@
 
   let cfg  = { ...FMS.DEFAULT_CONFIG };
   let data = { fahrzeuge:[], gruppen:[] };
+  let overviewInterval = null;
 
   /* ---------- Konfiguration ---------- */
   function loadCfg(){
@@ -21,9 +22,8 @@
     try{ localStorage.setItem(FMS.STORAGE_KEY, JSON.stringify(cfg)); }catch(e){}
   }
 
-
-/* ---------- PIN-Schutz Logik ---------- */
-  const TARGET_PIN = "2318"; // Hier Wunsch-PIN festlegen
+  /* ---------- PIN-Schutz Logik ---------- */
+  const TARGET_PIN = "2318"; // Festgelegte Wunsch-PIN
   let currentPinInput = "";
 
   function initPinLock() {
@@ -84,14 +84,9 @@
       currentPinInput = "";
       updatePinDots();
     }
-  };
+  }
 
-
-
-
-
-
-/* ---------- Daten laden & lokalen Status mergen ---------- */
+  /* ---------- Daten laden & lokalen Status mergen ---------- */
   function loadData(){
     if(!window.FMS_DATA || !Array.isArray(window.FMS_DATA.fahrzeuge)) {
       throw new Error("FMS_DATA fehlt (data/gears.js nicht geladen)");
@@ -123,7 +118,7 @@
     } catch(e) {}
   }
 
- /* ---------- Tastenfeld ---------- */
+  /* ---------- Tastenfeld ---------- */
   function buildKeypad(){
     const keypad = $("keypad");
     if (!keypad) return;
@@ -145,42 +140,20 @@
       keypad.appendChild(b);
     });
   }
-/* ---------- Tastenfeld Hervorhebung ---------- */
+
+  /* ---------- Statusfarben der Tasten dynamisch setzen ---------- */
   function markSelected(n){
     document.querySelectorAll(".key").forEach(k => {
-      const isSelected = Number(k.dataset.status) === Number(n);
+      const statusNum = Number(k.dataset.status);
+      const isSelected = statusNum === Number(n);
+      
       k.classList.toggle("selected", isSelected);
-    });
-  }
-
-  /* ---------- UI bei Auswahlaktualisierung anpassen ---------- */
-  function updateSelectUI() {
-    const list = activeList();
-    const current = list.find(i => i.name === cfg.selected);
-    const badge = $("selectedBadge");
-    const label = $("selectedLabel");
-
-    if (current && badge && label) {
-      const statusNum = current.status !== undefined ? current.status : "?";
-      const text = cfg.mode === "gruppen"
-        ? current.name + " (" + ((current.fahrzeuge || []).length) + ")"
-        : current.name;
-
-      badge.textContent = statusNum;
-      badge.dataset.status = statusNum;
-      label.textContent = text;
-
-      // Status des ausgewählten Fahrzeugs auf den Tasten markieren
-      markSelected(statusNum);
-    } else if (badge && label) {
-      badge.textContent = "--";
-      badge.removeAttribute("data-status");
-      label.textContent = "Keine Auswahl";
-      markSelected(-1); // Markierungen entfernen
-    }
-
-    document.querySelectorAll(".select-option").forEach(opt => {
-      opt.classList.toggle("selected", opt.dataset.value === cfg.selected);
+      
+      if (isSelected) {
+        k.setAttribute("data-status-active", statusNum);
+      } else {
+        k.removeAttribute("data-status-active");
+      }
     });
   }
 
@@ -197,10 +170,12 @@
 
   /* ---------- Auswahl / Ziel ---------- */
   function activeList(){ return cfg.mode === "gruppen" ? data.gruppen : data.fahrzeuge; }
+  
   function issiOf(name){
     const v = data.fahrzeuge.find(f => f.name === name);
     return v ? (v.issi || "") : "";
   }
+  
   function currentTarget(){
     if(cfg.mode === "gruppen"){
       const g = data.gruppen.find(x => x.name === cfg.selected);
@@ -264,6 +239,7 @@
     refreshTitle();
   }
 
+  /* ---------- UI beim Fahrzeugwechsel/Aktivierung aktualisieren ---------- */
   function updateSelectUI() {
     const list = activeList();
     const current = list.find(i => i.name === cfg.selected);
@@ -279,10 +255,14 @@
       badge.textContent = statusNum;
       badge.dataset.status = statusNum;
       label.textContent = text;
+
+      // Tastatur mit der spezifischen Farbe des Fahrzeugstatus markieren
+      markSelected(statusNum);
     } else if (badge && label) {
       badge.textContent = "--";
       badge.removeAttribute("data-status");
       label.textContent = "Keine Auswahl";
+      markSelected(-1);
     }
 
     document.querySelectorAll(".select-option").forEach(opt => {
@@ -312,7 +292,7 @@
     saveCfg();
   }
 
- /* ---------- Status senden, im Speicher sichern & UI aktualisieren ---------- */
+  /* ---------- Status senden, im Speicher sichern & UI aktualisieren ---------- */
   async function onKey(n){
     const target = currentTarget();
     if(!target || !target.members.length){
@@ -320,7 +300,7 @@
       return;
     }
     
-    // Tastenauswahl sofort blau markieren
+    // Taste sofort visuell hervorheben
     markSelected(n);
     
     toast("Sende Status " + n + " \u2026");
@@ -330,7 +310,7 @@
     const ok  = results.filter(r => r.ok).length;
     const tot = results.length;
     
-    // Status für das Fahrzeug / die Gruppe im Speicher sichern
+    // Status lokal für alle beteiligten Fahrzeuge sichern
     target.members.forEach((m, idx) => {
       if (results[idx].ok || cfg.test) {
         const veh = data.fahrzeuge.find(f => f.name === m.name);
@@ -339,16 +319,7 @@
       }
     });
 
-
-    /* Status dauerhaft im Browser sichern */
-  function saveVehicleStatus(vehicleName, newStatus) {
-    try {
-      const savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
-      savedStatuses[vehicleName] = newStatus;
-      localStorage.setItem("FMS_VEHICLE_STATUSES", JSON.stringify(savedStatuses));
-    } catch(e) {}
-  }
-    // Dropdown-Farben & Badges aktualisieren
+    // Dropdown-Auswahlliste sowie Status-Badges neu aufbauen
     populateSelect();
 
     if(tot === 1){
@@ -400,18 +371,74 @@
     }
   }
 
+  /* ---------- Statusübersicht Modal (Zentrale) ---------- */
+  function renderStatusOverview() {
+    try {
+      data = loadData();
+    } catch(e) {}
+
+    const container = $("statusOverviewList");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (data && data.fahrzeuge) {
+      data.fahrzeuge.forEach(vehicle => {
+        const currentStatus = vehicle.status !== undefined ? vehicle.status : 2;
+        
+        const row = document.createElement("div");
+        row.className = "status-row";
+        row.innerHTML = `
+          <div class="status-box" data-status="${currentStatus}">${currentStatus}</div>
+          <div class="vehicle-name">${vehicle.label || vehicle.name || vehicle.id}</div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    $("statusOverviewBackdrop")?.classList.add("open");
+  }
+
+/* ---------- Statusübersicht Popout (Zentrale) ---------- */
+  function openStatusOverview() {
+    closeSheet(); // Einstellungs-Sheet schließen
+    
+    // Öffnet die externe Datei uebersicht.html in einem separaten Popout-Fenster
+    const width = 800;
+    const height = 600;
+    const left = (screen.width - width) / 2;
+    const top = (screen.height - height) / 2;
+
+    window.open(
+      "uebersicht.html",
+      "FMS_Statusuebersicht",
+      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+    );
+  }
+
+  function closeStatusOverview() {
+    $("statusOverviewBackdrop")?.classList.remove("open");
+    
+    if (overviewInterval) {
+      clearInterval(overviewInterval);
+      overviewInterval = null;
+    }
+  }
+
   /* ---------- Start ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
     initPinLock();
     loadCfg();
     buildKeypad();
 
+    // Event-Listener
     $("btnSettings")?.addEventListener("click", openSheet);
     $("btnClose")?.addEventListener("click", closeSheet);
     $("btnSave")?.addEventListener("click", save);
     $("btnPos")?.addEventListener("click", setPosition);
     $("segFahrzeuge")?.addEventListener("click", () => setMode("fahrzeuge"));
     $("segGruppen")?.addEventListener("click", () => setMode("gruppen"));
+    $("btnOpenOverview")?.addEventListener("click", openStatusOverview);
     
     // Custom Select Listener
     $("selectTrigger")?.addEventListener("click", toggleCustomSelect);
@@ -420,19 +447,30 @@
       if (cs && !cs.contains(e.target)) closeCustomSelect();
     });
 
+    // Statusübersicht Listener
+    $("btnCloseOverview")?.addEventListener("click", closeStatusOverview);
+    $("statusOverviewBackdrop")?.addEventListener("click", e => {
+      if (e.target === $("statusOverviewBackdrop")) closeStatusOverview();
+    });
+
     backdrop?.addEventListener("click", e => { if(e.target === backdrop) closeSheet(); });
 
+    // Mode setzen
     $("segFahrzeuge")?.classList.toggle("active", cfg.mode === "fahrzeuge");
     $("segGruppen")?.classList.toggle("active", cfg.mode === "gruppen");
 
-    try{
-      data = await loadData();
-    }catch(e){
-      toast("data/gears.js nicht geladen. Datei vorhanden?", "err");
+    // 1. Daten inklusive localStorage-Status laden
+    try {
+      data = loadData(); 
+    } catch(e) {
+      toast("data/gears.js nicht geladen.", "err");
     }
+
+    // 2. Erst NACH dem Datenladen die UI + Tastenfarben aufbauen
     populateSelect();
 
     if(!cfg.token) openSheet();
     registerSW();
   });
+
 })();

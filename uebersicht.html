@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FMS Statusübersicht</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --group-bg: #1a1a1a;
+      --text: #ffffff;
+      --border: #333333;
+
+      --status-0: #f44336;
+      --status-1: #2196f3;
+      --status-2: #4caf50;
+      --status-3: #ffeb3b;
+      --status-4: #ff9800;
+      --status-5: #9c27b0;
+      --status-6: #757575;
+      --status-7: #00bcd4;
+      --status-8: #8bc34a;
+      --status-9: #e91e63;
+      --status-default: #333333;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 10px;
+      height: 100vh;
+      overflow: auto;
+    }
+
+    /* Container Standard */
+    #groupsContainer {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+    }
+
+    /* 1. MODUS: FLACHES FENSTER (Höhe klein, breiter Bildschirm) */
+    @media (max-height: 300px) {
+      #groupsContainer {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+      }
+
+      .group-section {
+        background: var(--group-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        flex: 0 0 auto;
+      }
+
+      .overview-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+      }
+    }
+
+    /* 2. MODUS: SCHMALES FENSTER (Hochformat / Liste) */
+    @media (max-width: 500px) and (min-height: 301px) {
+      #groupsContainer {
+        flex-direction: column;
+      }
+
+      .group-section {
+        background: var(--group-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px;
+        width: 100%;
+      }
+
+      .overview-grid {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+    }
+
+    /* 3. MODUS: KOMPAKT / QUADRATISCH (Ohne Gruppenrahmen) */
+    body.mode-compact #groupsContainer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+
+    body.mode-compact .group-section {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    body.mode-compact .group-title {
+      display: none; /* Gruppentitel ausblenden */
+    }
+
+    body.mode-compact .overview-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    /* Grunddesign der Karten & Badges */
+    .group-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #aaa;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 4px;
+    }
+
+    .v-card {
+      background: var(--card-bg);
+      border-radius: 8px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 140px;
+      min-width: 140px;
+      min-height: 80px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .v-badge {
+      font-size: 1.5rem;
+      font-weight: bold;
+      width: 38px;
+      height: 38px;
+      line-height: 38px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .v-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      word-break: break-word;
+      line-height: 1.1;
+      width: 100%;
+    }
+
+    /* Statusfarben */
+    .v-badge[data-status="0"] { background-color: var(--status-0); color: #fff; }
+    .v-badge[data-status="1"] { background-color: var(--status-1); color: #fff; }
+    .v-badge[data-status="2"] { background-color: var(--status-2); color: #fff; }
+    .v-badge[data-status="3"] { background-color: var(--status-3); color: #000; }
+    .v-badge[data-status="4"] { background-color: var(--status-4); color: #fff; }
+    .v-badge[data-status="5"] { background-color: var(--status-5); color: #fff; }
+    .v-badge[data-status="6"] { background-color: var(--status-6); color: #fff; }
+    .v-badge[data-status="7"] { background-color: var(--status-7); color: #fff; }
+    .v-badge[data-status="8"] { background-color: var(--status-8); color: #fff; }
+    .v-badge[data-status="9"] { background-color: var(--status-9); color: #fff; }
+  </style>
+</head>
+<body>
+
+  <div id="groupsContainer"></div>
+
+  <script src="data/gears.js"></script>
+  <script>
+    function updateLayoutMode() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+
+      // Quadratisches / kleines Fenster erkennen (Breite & Höhe > 300px, aber keine extremen Flach-/Schmal-Formate)
+      const isCompact = w > 500 && h > 300 && (w / h >= 0.75 && w / h <= 1.4);
+
+      if (isCompact) {
+        document.body.classList.add("mode-compact");
+      } else {
+        document.body.classList.remove("mode-compact");
+      }
+    }
+
+    function render() {
+      updateLayoutMode();
+      const container = document.getElementById("groupsContainer");
+      if (!container) return;
+
+      let savedStatuses = {};
+      try {
+        savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
+      } catch(e) {}
+
+      const fmsData = window.FMS_DATA || { fahrzeuge: [], gruppen: [] };
+      const allVehicles = fmsData.fahrzeuge || [];
+      const groups = fmsData.gruppen || [];
+
+      const vehicleMap = new Map();
+      allVehicles.forEach(v => {
+        const currentStatus = savedStatuses[v.name] !== undefined ? savedStatuses[v.name] : (v.status || 2);
+        vehicleMap.set(v.name, { ...v, status: currentStatus });
+      });
+
+      container.innerHTML = "";
+      const assignedVehicleNames = new Set();
+
+      groups.forEach(group => {
+        const groupMembers = (group.fahrzeuge || [])
+          .map(name => vehicleMap.get(name))
+          .filter(Boolean);
+
+        if (groupMembers.length > 0) {
+          groupMembers.forEach(v => assignedVehicleNames.add(v.name));
+          container.appendChild(createGroupSection(group.name, groupMembers));
+        }
+      });
+
+      const unassignedVehicles = allVehicles
+        .filter(v => !assignedVehicleNames.has(v.name))
+        .map(v => vehicleMap.get(v.name));
+
+      if (unassignedVehicles.length > 0) {
+        container.appendChild(createGroupSection("Sonstige", unassignedVehicles));
+      }
+    }
+
+    function createGroupSection(title, vehicles) {
+      const groupEl = document.createElement("div");
+      groupEl.className = "group-section";
+
+      const titleEl = document.createElement("div");
+      titleEl.className = "group-title";
+      titleEl.textContent = `${title} (${vehicles.length})`;
+      groupEl.appendChild(titleEl);
+
+      const gridEl = document.createElement("div");
+      gridEl.className = "overview-grid";
+
+      vehicles.forEach(v => {
+        const card = document.createElement("div");
+        card.className = "v-card";
+        card.innerHTML = `
+          <div class="v-badge" data-status="${v.status}">${v.status}</div>
+          <div class="v-name">${v.name}</div>
+        `;
+        gridEl.appendChild(card);
+      });
+
+      groupEl.appendChild(gridEl);
+      return groupEl;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      render();
+      setInterval(render, 2000);
+      window.addEventListener("storage", render);
+      window.addEventListener("resize", render);
+    });
+  </script>
+</body>
+</html>

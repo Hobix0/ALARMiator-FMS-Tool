@@ -23,9 +23,9 @@ window.FMS_DATA = {
     { "name": "Heros RS 86/31", "issi": "83122", "status": 2 },
     { "name": "Heros RS 86/45", "issi": "8168", "status": 2 },
     { "name": "Heros RS 86/73", "issi": "97568", "status": 2 },
-    { "name": "Anh EGS", "issi": "", "status": 2 },
+    { "name": "Anh EGS", "issi": "87380", "status": 2 },
     { "name": "Anh LiMa", "issi": "", "status": 2 },
-    { "name": "Anh WB", "issi": "", "status": 2 },
+    { "name": "Anh WB", "issi": "95177", "status": 2 },
     { "name": "Anh BRmG klein", "issi": "", "status": 2 },
     { "name": "Anh ERS", "issi": "", "status": 2 },
     { "name": "Anh PKW", "issi": "", "status": 2 },
@@ -33,11 +33,11 @@ window.FMS_DATA = {
   ],
   "gruppen": [
     { "name": "ZTr",  "fahrzeuge": ["Heros RS 21/10"] },
-    { "name": "B",    "fahrzeuge": ["Heros RS 22/51"] },
-    { "name": "N",    "fahrzeuge": ["Heros RS 24/54"] },
-    { "name": "SB",   "fahrzeuge": ["Heros RS 39/55","Heros RS 39/75"] },
-    { "name": "BT",   "fahrzeuge": ["Heros RS 58/34"] },
+    { "name": "B",    "fahrzeuge": ["Heros RS 22/51", "Heros RS 86/73", "Anh EGS", "Anh BRmG klein"] },
+    { "name": "N",    "fahrzeuge": ["Heros RS 24/54", "Anh LiMa", "Anh WB"] },
+    { "name": "SB",   "fahrzeuge": ["Heros RS 39/55","Heros RS 86/45","Heros RS 39/75", "Anh ERS"] },
+    { "name": "BT",   "fahrzeuge": ["Heros RS 58/34", "Anh Boot"] },
     { "name": "ESS",  "fahrzeuge": ["Heros RS 75/25"] },
-    { "name": "STAB", "fahrzeuge": [] }
+    { "name": "STAB", "fahrzeuge": ["Heros RS 86/21", "Heros RS 86/25", "Heros RS 86/31", "Anh PKW"] }
   ]
 };
