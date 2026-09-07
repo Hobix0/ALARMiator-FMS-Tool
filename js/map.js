@@ -1,5 +1,5 @@
 /* ============================================================
-   Kartenansicht mit Leaflet, Fahrzeug-Icons & Status-Balken
+   Kartenansicht mit Leaflet, Fahrzeug-Icons, Status & LocalStorage-Sync
    ============================================================ */
 (function() {
   "use strict";
@@ -53,7 +53,7 @@
     
     // Grid-Raster Einstellungen (Abstände in Pixeln auf dem Bildschirm)
     gridSpacingX: 90,     
-    gridSpacingY: 130,    // Etwas mehr Platz wegen des zusätzlichen Namens unter dem Balken
+    gridSpacingY: 130,    // Platz für Namen unter dem Balken
     maxColumns: 3,        
 
     // Ab wie vielen Fahrzeugen auf eine Kompakt-Liste umgeschaltet wird
@@ -133,7 +133,6 @@
     const statusText = statusNum !== undefined ? statusNum : '?';
 
     const width = MAP_CONFIG.imgWidth;
-    // Gesamthöhe inkl. Bild, Status-Balken und Namensfeld darunter
     const height = MAP_CONFIG.imgHeight + MAP_CONFIG.barHeight + 25;
 
     return L.divIcon({
@@ -203,7 +202,7 @@
     });
   }
 
-  /* ---------- Kompakt-Icon für > 4 Fahrzeuge an einer Stelle ---------- */
+  /* ---------- Kompakt-Icon für >= 4 Fahrzeuge an einer Stelle ---------- */
   function createCompactClusterIcon(clusterVehicles) {
     let itemsHtml = '';
     clusterVehicles.forEach(veh => {
@@ -259,15 +258,15 @@
     }
   }
 
-  /* ---------- Alle Marker zeichnen (Logik mit Kompakt-Umschaltung) ---------- */
+  /* ---------- Alle Marker zeichnen ---------- */
   function renderAllVehicleMarkers(shouldFitBounds = true) {
     if (!window.FMS_DATA || !Array.isArray(window.FMS_DATA.fahrzeuge) || !map) return;
 
     clearLines();
 
-    // 1. Alle aktiven Fahrzeuge und deren GPS-Koordinaten holen
     const activeVehicles = [];
     window.FMS_DATA.fahrzeuge.forEach(veh => {
+      // Prüfen, ob eine im LocalStorage gespeicherte Position existiert (durch Statusänderung/GPS-Setzen)
       const savedPos = getSavedPosition(veh.name);
       const lat = savedPos ? savedPos.lat : veh.lat;
       const lng = savedPos ? savedPos.lng : veh.lng;
@@ -283,7 +282,6 @@
 
     if (activeVehicles.length === 0) return;
 
-    // 2. Gruppieren nach nah beieinanderliegenden Positionen
     const clusters = [];
     activeVehicles.forEach(veh => {
       const vehPoint = map.latLngToContainerPoint([veh.lat, veh.lng]);
@@ -310,21 +308,18 @@
 
     const allDisplayBounds = [];
 
-    // 3. Cluster verarbeiten
     clusters.forEach(cluster => {
       const count = cluster.length;
       const centerLatLng = L.latLng(cluster[0].lat, cluster[0].lng);
       const centerPoint = map.latLngToContainerPoint(centerLatLng);
 
       if (count === 1) {
-        // Einzelnes Fahrzeug
         const veh = cluster[0];
         const displayLatLng = [veh.lat, veh.lng];
         allDisplayBounds.push(displayLatLng);
         drawOrUpdateMarker(veh.name, displayLatLng);
       } 
       else if (count >= MAP_CONFIG.compactThreshold) {
-        // AB 4 FAHRZEUGEN: Kompakt-Box anzeigen statt SVGs im Grid!
         const clusterId = "compact_" + cluster.map(v => v.name).join("_");
         const icon = createCompactClusterIcon(cluster);
 
@@ -346,7 +341,6 @@
         allDisplayBounds.push(centerLatLng);
       } 
       else {
-        // 2 bis 3 Fahrzeuge: Normales Grid mit Namen und Verbindungslinien
         const originMarker = L.circleMarker(centerLatLng, {
           radius: 6,
           color: '#d9363e',
@@ -384,7 +378,6 @@
       }
     });
 
-    // 4. Auto-Zoom / Bounds anpassen
     if (shouldFitBounds && allDisplayBounds.length > 0) {
       map.fitBounds(allDisplayBounds, {
         padding: MAP_CONFIG.boundsPadding,
@@ -408,12 +401,12 @@
     }
   };
 
-  /* Auto-Start & Intervall-Polling */
+  /* Auto-Start & Intervall-Polling (Aktualisiert die Ansicht regelmäßig aus dem LocalStorage) */
   document.addEventListener("DOMContentLoaded", () => {
     initMap();
     
     setInterval(() => {
-      renderAllVehicleMarkers(true);
+      renderAllVehicleMarkers(false); // false = Zoom nicht ständig erzwingen beim Polling
     }, MAP_CONFIG.pollInterval);
   });
 

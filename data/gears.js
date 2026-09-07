@@ -4,32 +4,32 @@
    Semikolon am Ende muessen stehen bleiben.
 
    - Fahrzeug: ISSI in das leere "issi"-Feld eintragen.
-   - Gruppe:   Fahrzeugnamen in das "fahrzeuge"-Array schreiben
-               (exakt wie unter "fahrzeuge" benannt).
+   - Gruppe:    Fahrzeugnamen in das "fahrzeuge"-Array schreiben
+                (exakt wie unter "fahrzeuge" benannt).
    Kommas zwischen den Eintraegen nicht vergessen, hinter dem
    letzten Eintrag KEIN Komma.
    ============================================================ */
 window.FMS_DATA = {
   "fahrzeuge": [
-    { "name": "Heros RS 21/10", "issi": "81365", "status": 2, "icon": "heros_21_10.svg" },
-    { "name": "Heros RS 22/51", "issi": "85539", "status": 2, "icon": "heros_22_51.svg" },
-    { "name": "Heros RS 24/54", "issi": "90287", "status": 2, "icon": "heros_24_54.svg" },
-    { "name": "Heros RS 39/55", "issi": "91316", "status": 2, "icon": "heros_39_55.svg" },
-    { "name": "Heros RS 39/75", "issi": "84381", "status": 2, "icon": "heros_39_75.svg" },
-    { "name": "Heros RS 58/34", "issi": "90712", "status": 2, "icon": "heros_58_34.svg" },
-    { "name": "Heros RS 75/25", "issi": "99006", "status": 2, "icon": "heros_75_25.svg" },
-    { "name": "Heros RS 86/21", "issi": "99385", "status": 2, "icon": "heros_86_21.svg" },
-    { "name": "Heros RS 86/25", "issi": "91455", "status": 2, "icon": "heros_86_25.svg" },
-    { "name": "Heros RS 86/31", "issi": "83122", "status": 2, "icon": "heros_86_31.svg" },
-    { "name": "Heros RS 86/45", "issi": "8168",  "status": 2, "icon": "heros_86_45.svg" },
-    { "name": "Heros RS 86/73", "issi": "97568", "status": 2, "icon": "heros_86_73.svg" },
-    { "name": "Anh EGS",        "issi": "87380", "status": 2, "icon": "anh_egs.svg" },
-    { "name": "Anh LiMa",       "issi": "",      "status": 2, "icon": "anh_lima.svg" },
-    { "name": "Anh WB",         "issi": "95177", "status": 2, "icon": "anh_wb.svg" },
-    { "name": "Anh BRmG klein", "issi": "",      "status": 2, "icon": "anh_brmg.svg" },
-    { "name": "Anh ERS",        "issi": "",      "status": 2, "icon": "anh_ers.svg" },
-    { "name": "Anh PKW",        "issi": "",      "status": 2, "icon": "anh_pkw.svg" },
-    { "name": "Anh Boot",       "issi": "",      "status": 2, "icon": "anh_boot.svg" }
+    { "name": "Heros RS 21/10", "issi": "81365", "status": 2, "icon": "heros_21_10.svg", "lat": 51.1802, "lng": 7.1858 },
+    { "name": "Heros RS 22/51", "issi": "85539", "status": 2, "icon": "heros_22_51.svg", "lat": 51.1805, "lng": 7.1862 },
+    { "name": "Heros RS 24/54", "issi": "90287", "status": 2, "icon": "heros_24_54.svg", "lat": 51.1810, "lng": 7.1850 },
+    { "name": "Heros RS 39/55", "issi": "91316", "status": 2, "icon": "heros_39_55.svg", "lat": 51.1798, "lng": 7.1870 },
+    { "name": "Heros RS 39/75", "issi": "84381", "status": 2, "icon": "heros_39_75.svg", "lat": 51.1795, "lng": 7.1845 },
+    { "name": "Heros RS 58/34", "issi": "90712", "status": 2, "icon": "heros_58_34.svg", "lat": 51.1815, "lng": 7.1880 },
+    { "name": "Heros RS 75/25", "issi": "99006", "status": 2, "icon": "heros_75_25.svg", "lat": 51.1788, "lng": 7.1830 },
+    { "name": "Heros RS 86/21", "issi": "99385", "status": 2, "icon": "heros_86_21.svg", "lat": 51.1820, "lng": 7.1840 },
+    { "name": "Heros RS 86/25", "issi": "91455", "status": 2, "icon": "heros_86_25.svg", "lat": 51.1780, "lng": 7.1860 },
+    { "name": "Heros RS 86/31", "issi": "83122", "status": 2, "icon": "heros_86_31.svg", "lat": 51.1825, "lng": 7.1890 },
+    { "name": "Heros RS 86/45", "issi": "8168",  "status": 2, "icon": "heros_86_45.svg", "lat": 51.1775, "lng": 7.1820 },
+    { "name": "Heros RS 86/73", "issi": "97568", "status": 2, "icon": "heros_86_73.svg", "lat": 51.1830, "lng": 7.1855 },
+    { "name": "Anh EGS",        "issi": "87380", "status": 2, "icon": "anh_egs.svg", "lat": 51.1804, "lng": 7.1864 },
+    { "name": "Anh LiMa",       "issi": "",      "status": 2, "icon": "anh_lima.svg", "lat": 51.1808, "lng": 7.1852 },
+    { "name": "Anh WB",         "issi": "95177", "status": 2, "icon": "anh_wb.svg", "lat": 51.1796, "lng": 7.1868 },
+    { "name": "Anh BRmG klein", "issi": "",      "status": 2, "icon": "anh_brmg.svg", "lat": 51.1794, "lng": 7.1843 },
+    { "name": "Anh ERS",        "issi": "",      "status": 2, "icon": "anh_ers.svg", "lat": 51.1814, "lng": 7.1878 },
+    { "name": "Anh PKW",        "issi": "",      "status": 2, "icon": "anh_pkw.svg", "lat": 51.1786, "lng": 7.1828 },
+    { "name": "Anh Boot",       "issi": "",      "status": 2, "icon": "anh_boot.svg", "lat": 51.1818, "lng": 7.1838 }
   ],
   "gruppen": [
     { "name": "ZTr",  "fahrzeuge": ["Heros RS 21/10"] },
