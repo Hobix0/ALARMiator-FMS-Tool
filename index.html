@@ -19,7 +19,7 @@
     <button class="gear" id="btnSettings" aria-label="Einstellungen">&#9881;</button>
   </header>
 
-<!-- Umschalter Fahrzeuge/Gruppen + Auswahl -->
+  <!-- Umschalter Fahrzeuge/Gruppen + Auswahl -->
   <div class="selector">
     <div class="seg" role="tablist">
       <button id="segFahrzeuge" class="active" role="tab">Fahrzeuge</button>
@@ -49,15 +49,27 @@
   <div class="sheet-backdrop" id="sheetBackdrop">
     <div class="sheet" role="dialog" aria-label="Einstellungen">
       <h2>Einstellungen</h2>
-      <p class="hint">API-URL und Token. Wird nur lokal auf diesem Ger&auml;t gespeichert &ndash; nichts wird ins Repo committet. Fahrzeuge und ISSI werden in <code>data/gears.js</code> gepflegt.</p>
+      <p class="hint">API-URL und Tokens. Wird nur lokal auf diesem Gerät gespeichert – nichts wird ins Repo committet. Fahrzeuge und ISSI werden in <code>data/gears.js</code> gepflegt.</p>
+
+<div class="switch" style="margin-bottom:12px">
+  <span>Dark Mode (Dunkles Blau)</span>
+  <input type="checkbox" id="fTheme">
+</div>
 
       <div class="field">
         <label for="fBase">API-Basis-URL</label>
         <input id="fBase" placeholder="https://alarm.thw-remscheid.de">
       </div>
+      
+      <!-- Getrennte Token-Felder -->
       <div class="field">
-        <label for="fToken">Token</label>
-        <input id="fToken" placeholder="Token aus Alarminator" autocomplete="off">
+        <label for="fApiToken">API-Token 1 (zum Status Senden)</label>
+        <input id="fApiToken" placeholder="Schnittstellen API-Key / Token" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="fBasicToken">API-Token 2 (zum Status Abrufen)</label>
+        <input id="fBasicToken" placeholder="Base64-String oder username:password" autocomplete="off">
       </div>
 
       <div class="switch" style="margin-bottom:12px">
@@ -79,55 +91,54 @@
         </div>
       </div>
 
-      <!-- Diesen Button im Einstellungen-Sheet platzieren -->
-<div class="field" style="margin-top: 15px;">
-  <button id="btnOpenOverview" class="btn" style="width:100%; background:#1c3b6f; color:#fff;">
-    📊 Statusübersicht anzeigen
-  </button>
-</div>
+      <!-- Button im Einstellungen-Sheet -->
+      <div class="field" style="margin-top: 15px;">
+        <button id="btnOpenOverview" class="btn" style="width:100%; background:#1c3b6f; color:#fff;">
+          📊 Statusübersicht anzeigen
+        </button>
+      </div>
 
       <div class="actions">
-        <button class="btn" id="btnClose">Schlie&szlig;en</button>
+        <button class="btn" id="btnClose">Schließen</button>
         <button class="btn primary" id="btnSave">Speichern</button>
       </div>
       <footer>
-        <p>FMS Tool f&uuml;r Alarminator (c) Luca Theis 2026 &ndash; <a href="" target="_blank" rel="noopener noreferrer">GitHub</a></p>
+        <p>FMS Tool für Alarminator (c) Luca Theis 2026 &ndash; <a href="" target="_blank" rel="noopener noreferrer">GitHub</a></p>
       </footer>
     </div>
   </div>
 
+  <!-- PIN-Abfrage Overlay -->
+  <div class="pin-backdrop" id="pinBackdrop">
+    <div class="pin-card">
+      <h3>PIN-Eingabe</h3>
+      <p class="pin-hint">Bitte PIN eingeben, um fortzufahren.</p>
 
-<!-- PIN-Abfrage Overlay -->
-<div class="pin-backdrop" id="pinBackdrop">
-  <div class="pin-card">
-    <h3>PIN-Eingabe</h3>
-    <p class="pin-hint">Bitte PIN eingeben, um fortzufahren.</p>
+      <!-- Punkte zur Anzeige der eingegebenen Stellen -->
+      <div class="pin-dots" id="pinDots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
 
-    <!-- Punkte zur Anzeige der eingegebenen Stellen -->
-    <div class="pin-dots" id="pinDots">
-      <span class="dot"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
-      <span class="dot"></span>
-    </div>
-
-    <!-- Tastenfeld für PIN -->
-    <div class="pin-keypad">
-      <button class="pin-btn" data-val="1">1</button>
-      <button class="pin-btn" data-val="2">2</button>
-      <button class="pin-btn" data-val="3">3</button>
-      <button class="pin-btn" data-val="4">4</button>
-      <button class="pin-btn" data-val="5">5</button>
-      <button class="pin-btn" data-val="6">6</button>
-      <button class="pin-btn" data-val="7">7</button>
-      <button class="pin-btn" data-val="8">8</button>
-      <button class="pin-btn" data-val="9">9</button>
-      <button class="pin-btn del" id="btnPinClear">C</button>
-      <button class="pin-btn" data-val="0">0</button>
-      <button class="pin-btn ok" id="btnPinSubmit">✓</button>
+      <!-- Tastenfeld für PIN -->
+      <div class="pin-keypad">
+        <button class="pin-btn" data-val="1">1</button>
+        <button class="pin-btn" data-val="2">2</button>
+        <button class="pin-btn" data-val="3">3</button>
+        <button class="pin-btn" data-val="4">4</button>
+        <button class="pin-btn" data-val="5">5</button>
+        <button class="pin-btn" data-val="6">6</button>
+        <button class="pin-btn" data-val="7">7</button>
+        <button class="pin-btn" data-val="8">8</button>
+        <button class="pin-btn" data-val="9">9</button>
+        <button class="pin-btn del" id="btnPinClear">C</button>
+        <button class="pin-btn" data-val="0">0</button>
+        <button class="pin-btn ok" id="btnPinSubmit">✓</button>
+      </div>
     </div>
   </div>
-</div>
 
   <script src="js/config.js?v=2.0"></script>
   <script src="js/statuses.js?v=2.0"></script>

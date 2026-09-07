@@ -1,7 +1,6 @@
 /* ==========================================================================
    UI-Verdrahtung: Umschalter, Custom-Dropdown, Tastenfeld, Position,
-   Einstellungen, Service-Worker, PIN-Sperre & LocalStorage-Status.
-   Datenquelle: data/gears.js (setzt window.FMS_DATA, per <script> geladen).
+   Einstellungen, Theme-Switch, Service-Worker, PIN-Sperre & Status.
    ========================================================================== */
 (function(){
   "use strict";
@@ -9,7 +8,7 @@
 
   let cfg  = { ...FMS.DEFAULT_CONFIG };
   let data = { fahrzeuge:[], gruppen:[] };
-  let overviewInterval = null;
+  let pollTimer = null;
 
   /* ---------- Konfiguration ---------- */
   function loadCfg(){
@@ -18,19 +17,24 @@
       if(raw) cfg = { ...FMS.DEFAULT_CONFIG, ...JSON.parse(raw) };
     }catch(e){}
   }
+
   function saveCfg(){
     try{ localStorage.setItem(FMS.STORAGE_KEY, JSON.stringify(cfg)); }catch(e){}
   }
 
+  /* ---------- Theme-Steuerung ---------- */
+  function applyTheme(isDark) {
+    document.documentElement.classList.toggle("dark-mode", !!isDark);
+  }
+
   /* ---------- PIN-Schutz Logik ---------- */
-  const TARGET_PIN = "2318"; // Festgelegte Wunsch-PIN
+  const TARGET_PIN = "2318";
   let currentPinInput = "";
 
   function initPinLock() {
     const backdrop = $("pinBackdrop");
     if (!backdrop) return;
 
-    // Klicks auf Zahlentasten 0-9
     document.querySelectorAll(".pin-btn[data-val]").forEach(btn => {
       btn.addEventListener("click", () => {
         if (currentPinInput.length < TARGET_PIN.length) {
@@ -40,19 +44,15 @@
       });
     });
 
-    // Löschen (C)
     $("btnPinClear")?.addEventListener("click", () => {
       currentPinInput = "";
       updatePinDots();
     });
 
-    // Bestätigen (✓)
     $("btnPinSubmit")?.addEventListener("click", verifyPin);
 
-    // Tastatur-Eingabe unterstützen
     document.addEventListener("keydown", e => {
       if (backdrop.classList.contains("hidden")) return;
-
       if (e.key >= "0" && e.key <= "9") {
         if (currentPinInput.length < TARGET_PIN.length) {
           currentPinInput += e.key;
@@ -93,14 +93,11 @@
     }
 
     const baseData = window.FMS_DATA;
-    
-    // Gespeicherte Status-Werte aus dem LocalStorage holen
     let savedStatuses = {};
     try {
       savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
     } catch(e) {}
 
-    // Fahrzeuge mit lokal gespeichertem Status (oder Standard 2) anreichern
     baseData.fahrzeuge = baseData.fahrzeuge.map(f => ({
       ...f,
       status: savedStatuses[f.name] !== undefined ? savedStatuses[f.name] : (f.status || 2)
@@ -109,13 +106,84 @@
     return baseData;
   }
 
-  /* Status lokal auf dem Gerät speichern */
   function saveVehicleStatus(vehicleName, newStatus) {
     try {
       const savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
       savedStatuses[vehicleName] = newStatus;
       localStorage.setItem("FMS_VEHICLE_STATUSES", JSON.stringify(savedStatuses));
     } catch(e) {}
+  }
+
+  /* ---------- Status per GET abfragen (Nutzung von Basic Auth) ---------- */
+  async function fetchRemoteStatuses() {
+    const basicToken = cfg.basicToken || cfg.token;
+    if (!cfg.base || !basicToken) return;
+
+    const baseUrl = cfg.base.replace(/\/+$/, "");
+    const url = new URL(baseUrl + (baseUrl.endsWith("/api") ? "/gear/getGearAndExternalGear" : "/api/gear/getGearAndExternalGear"));
+
+    const authHeader = basicToken.startsWith("Basic ") ? basicToken : "Basic " + basicToken;
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "Authorization": authHeader
+        }
+      });
+
+      if (!response.ok) return;
+
+      const result = await response.json();
+      const gearList = result.gear || result.gears || (Array.isArray(result) ? result : []);
+
+      let hasChanges = false;
+
+      gearList.forEach(item => {
+        const veh = data.fahrzeuge.find(f => 
+          (f.name && item.title && f.name.trim().toLowerCase() === item.title.trim().toLowerCase()) ||
+          (f.name && item.gearname && f.name.trim().toLowerCase() === item.gearname.trim().toLowerCase()) ||
+          (f.issi && item.gearIdentifier && String(f.issi) === String(item.gearIdentifier)) ||
+          (f.issi && item.issi && String(f.issi) === String(item.issi))
+        );
+
+        if (veh) {
+          const statusRaw = item.radioStatusShort !== null && item.radioStatusShort !== undefined 
+            ? item.radioStatusShort 
+            : (item.status !== undefined ? item.status : item.radioStatusHumanReadable);
+
+          const newStatus = parseInt(statusRaw, 10);
+
+          if (!isNaN(newStatus) && veh.status !== newStatus) {
+            veh.status = newStatus;
+            saveVehicleStatus(veh.name, newStatus);
+            hasChanges = true;
+          }
+        }
+      });
+
+      if (hasChanges) {
+        populateSelect();
+        refreshTitle();
+        renderStatusOverview();
+      }
+    } catch (err) {
+      console.warn("Fehler beim Abrufen der Fahrzeuge:", err);
+    }
+  }
+
+  function startStatusPolling(intervalMs = 3000) {
+    stopStatusPolling();
+    fetchRemoteStatuses();
+    pollTimer = setInterval(fetchRemoteStatuses, intervalMs);
+  }
+
+  function stopStatusPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
   }
 
   /* ---------- Tastenfeld ---------- */
@@ -130,7 +198,6 @@
       b.dataset.status = n;
       b.setAttribute("aria-label", "Status " + n + ": " + s.label);
 
-      // Zahl und Beschriftung getrennt einfügen
       b.innerHTML = `
         <span class="key-num">${n}</span>
         <span class="key-label">${s.label}</span>
@@ -141,14 +208,11 @@
     });
   }
 
-  /* ---------- Statusfarben der Tasten dynamisch setzen ---------- */
   function markSelected(n){
     document.querySelectorAll(".key").forEach(k => {
       const statusNum = Number(k.dataset.status);
       const isSelected = statusNum === Number(n);
-      
       k.classList.toggle("selected", isSelected);
-      
       if (isSelected) {
         k.setAttribute("data-status-active", statusNum);
       } else {
@@ -239,7 +303,6 @@
     refreshTitle();
   }
 
-  /* ---------- UI beim Fahrzeugwechsel/Aktivierung aktualisieren ---------- */
   function updateSelectUI() {
     const list = activeList();
     const current = list.find(i => i.name === cfg.selected);
@@ -256,7 +319,6 @@
       badge.dataset.status = statusNum;
       label.textContent = text;
 
-      // Tastatur mit der spezifischen Farbe des Fahrzeugstatus markieren
       markSelected(statusNum);
     } else if (badge && label) {
       badge.textContent = "--";
@@ -292,36 +354,116 @@
     saveCfg();
   }
 
-  /* ---------- Status senden, im Speicher sichern & UI aktualisieren ---------- */
+  /* ---------- Statusübersicht Modal ---------- */
+  function renderStatusOverview() {
+    const container = $("statusOverviewList");
+    if (!container) return;
+    container.innerHTML = "";
+
+    data.fahrzeuge.forEach(f => {
+      const row = document.createElement("div");
+      row.className = "status-row";
+      
+      const st = f.status !== undefined ? f.status : "?";
+
+      row.innerHTML = `
+        <div class="status-box" data-status="${st}">${st}</div>
+        <div class="vehicle-name">${f.name}</div>
+      `;
+
+      container.appendChild(row);
+    });
+  }
+
+  function openOverview() {
+    renderStatusOverview();
+    $("statusOverviewBackdrop")?.classList.add("open");
+  }
+
+  function closeOverview() {
+    $("statusOverviewBackdrop")?.classList.remove("open");
+  }
+
+
+ /* ---------- Status senden (inkl. hochpräzisem GPS & Karten-Update) ---------- */
   async function onKey(n){
     const target = currentTarget();
     if(!target || !target.members.length){
-      toast(cfg.mode === "gruppen" ? "Gruppe ohne Fahrzeuge." : "Kein Fahrzeug gewaehlt.", "err");
+      toast(cfg.mode === "gruppen" ? "Gruppe ohne Fahrzeuge." : "Kein Fahrzeug gewählt.", "err");
       return;
     }
     
-    // Taste sofort visuell hervorheben
     markSelected(n);
-    
     toast("Sende Status " + n + " \u2026");
-    const results = await Promise.all(target.members.map(m =>
-      FMS.sendOne({ base:cfg.base, token:cfg.token, issi:m.issi, status:n, test:cfg.test })));
 
-    const ok  = results.filter(r => r.ok).length;
-    const tot = results.length;
-    
-    // Status lokal für alle beteiligten Fahrzeuge sichern
+    // 1. FMS-Status senden
+    const results = await Promise.all(target.members.map(m =>
+      FMS.sendOne({ 
+        base: cfg.base, 
+        token: cfg.apiToken || cfg.token, 
+        basicToken: cfg.basicToken,
+        issi: m.issi, 
+        status: n, 
+        test: cfg.test 
+      })
+    ));
+
+    // 2. Status sofort im LocalStorage & Datenobjekt speichern (Wichtig fürs Karten-Redraw!)
     target.members.forEach((m, idx) => {
       if (results[idx].ok || cfg.test) {
         const veh = data.fahrzeuge.find(f => f.name === m.name);
         if (veh) veh.status = n;
-        saveVehicleStatus(m.name, n);
+        
+        // Speichere den neuen Status im LocalStorage
+        try {
+          const savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
+          savedStatuses[m.name] = n;
+          localStorage.setItem("FMS_VEHICLE_STATUSES", JSON.stringify(savedStatuses));
+        } catch(e) {}
       }
     });
 
-    // Dropdown-Auswahlliste sowie Status-Badges neu aufbauen
-    populateSelect();
+    // 3. Hochpräzise GPS-Position abfragen
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          
+          let savedPositions = {};
+          try {
+            savedPositions = JSON.parse(localStorage.getItem("FMS_VEHICLE_POSITIONS")) || {};
+          } catch(e) {}
 
+          target.members.forEach(m => {
+            savedPositions[m.name] = { lat, lng, timestamp: new Date().toISOString() };
+
+            // Direktes Update des Markers auf der Karte auslösen
+            if (window.MapModule && typeof window.MapModule.updateVehiclePosition === "function") {
+              window.MapModule.updateVehiclePosition(m.name, lat, lng);
+            }
+          });
+
+          try {
+            localStorage.setItem("FMS_VEHICLE_POSITIONS", JSON.stringify(savedPositions));
+          } catch(e) {}
+        },
+        (err) => console.warn("GPS-Abfrage fehlerhaft:", err),
+        { 
+          enableHighAccuracy: true, // Erzwingt echten Sensor/GPS-Chip statt IP-Ortung
+          timeout: 10000, 
+          maximumAge: 0            // Verhindert das Nutzen alter/gecacheter Standortdaten
+        }
+      );
+    }
+
+    populateSelect();
+    updateSelectUI();
+    refreshTitle();
+    renderStatusOverview();
+
+    const ok  = results.filter(r => r.ok).length;
+    const tot = results.length;
     if(tot === 1){
       const r = results[0];
       toast(r.ok ? "Status " + n + " gesendet (" + r.message + ")." : "Fehler: " + r.message,
@@ -332,35 +474,49 @@
     }
   }
 
-  /* ---------- Aktuelle Position erfassen ---------- */
-  function setPosition(){
-    if(!navigator.geolocation){ toast("Standort wird nicht unterstuetzt.", "err"); return; }
-    toast("Ermittle Position \u2026");
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const la = pos.coords.latitude.toFixed(5), lo = pos.coords.longitude.toFixed(5);
-        toast("Position " + la + ", " + lo + " (Senden noch nicht angebunden).", "ok");
-      },
-      () => toast("Position nicht verfuegbar (Freigabe pruefen).", "err"),
-      { enableHighAccuracy:true, timeout:8000 }
-    );
-  }
+  /* ---------- Automatisches Polling-Intervall (Gleiches Intervall wie GET/Fetch) ---------- */
+  // Falls dein Poller z.B. alle 5000ms läuft, aktualisiere die Karte im selben Intervall:
+  const POLL_INTERVAL = 5000; 
 
-  /* ---------- Einstellungen ---------- */
+  setInterval(() => {
+    if (window.FMS_MAP && typeof window.FMS_MAP.update === "function") {
+      window.FMS_MAP.update();
+    }
+  }, POLL_INTERVAL);
+
+  /* ---------- Einstellungen Sheet ---------- */
   const backdrop = $("sheetBackdrop");
+  
   function openSheet(){
-    if($("fBase")) $("fBase").value = cfg.base;
-    if($("fToken")) $("fToken").value = cfg.token;
+    if($("fBase")) $("fBase").value = cfg.base || "";
+    if($("fApiToken")) $("fApiToken").value = cfg.apiToken || cfg.token || "";
+    if($("fBasicToken")) $("fBasicToken").value = cfg.basicToken || "";
     if($("fTest")) $("fTest").checked = cfg.test;
+    
+    const themeCheckbox = $("fTheme");
+    if(themeCheckbox) {
+      themeCheckbox.checked = cfg.darkMode !== false;
+    }
+
     backdrop?.classList.add("open");
   }
+
   function closeSheet(){ backdrop?.classList.remove("open"); }
+
   function save(){
     if($("fBase")) cfg.base = $("fBase").value.trim();
-    if($("fToken")) cfg.token = $("fToken").value.trim();
+    if($("fApiToken")) cfg.apiToken = $("fApiToken").value.trim();
+    if($("fBasicToken")) cfg.basicToken = $("fBasicToken").value.trim();
     if($("fTest")) cfg.test = $("fTest").checked;
+    if($("fTheme")) cfg.darkMode = $("fTheme").checked;
+    
+    cfg.token = cfg.apiToken || cfg.basicToken;
+    
+    applyTheme(cfg.darkMode);
     saveCfg();
-    toast(cfg.test ? "Gespeichert. Testmodus aktiv." : "Einstellungen gespeichert.", "ok");
+    startStatusPolling(3000);
+
+    toast("Einstellungen gespeichert.", "ok");
     closeSheet();
   }
 
@@ -371,105 +527,50 @@
     }
   }
 
-  /* ---------- Statusübersicht Modal (Zentrale) ---------- */
-  function renderStatusOverview() {
-    try {
-      data = loadData();
-    } catch(e) {}
-
-    const container = $("statusOverviewList");
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (data && data.fahrzeuge) {
-      data.fahrzeuge.forEach(vehicle => {
-        const currentStatus = vehicle.status !== undefined ? vehicle.status : 2;
-        
-        const row = document.createElement("div");
-        row.className = "status-row";
-        row.innerHTML = `
-          <div class="status-box" data-status="${currentStatus}">${currentStatus}</div>
-          <div class="vehicle-name">${vehicle.label || vehicle.name || vehicle.id}</div>
-        `;
-        container.appendChild(row);
-      });
-    }
-
-    $("statusOverviewBackdrop")?.classList.add("open");
-  }
-
-/* ---------- Statusübersicht Popout (Zentrale) ---------- */
-  function openStatusOverview() {
-    closeSheet(); // Einstellungs-Sheet schließen
-    
-    // Öffnet die externe Datei uebersicht.html in einem separaten Popout-Fenster
-    const width = 800;
-    const height = 600;
-    const left = (screen.width - width) / 2;
-    const top = (screen.height - height) / 2;
-
-    window.open(
-      "uebersicht.html",
-      "FMS_Statusuebersicht",
-      `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
-    );
-  }
-
-  function closeStatusOverview() {
-    $("statusOverviewBackdrop")?.classList.remove("open");
-    
-    if (overviewInterval) {
-      clearInterval(overviewInterval);
-      overviewInterval = null;
-    }
-  }
-
   /* ---------- Start ---------- */
   document.addEventListener("DOMContentLoaded", async () => {
     initPinLock();
     loadCfg();
+
+    if (cfg.darkMode === undefined) cfg.darkMode = true;
+    applyTheme(cfg.darkMode);
+
+    $("fTheme")?.addEventListener("change", (e) => {
+      applyTheme(e.target.checked);
+    });
+
     buildKeypad();
 
-    // Event-Listener
     $("btnSettings")?.addEventListener("click", openSheet);
     $("btnClose")?.addEventListener("click", closeSheet);
     $("btnSave")?.addEventListener("click", save);
-    $("btnPos")?.addEventListener("click", setPosition);
     $("segFahrzeuge")?.addEventListener("click", () => setMode("fahrzeuge"));
     $("segGruppen")?.addEventListener("click", () => setMode("gruppen"));
-    $("btnOpenOverview")?.addEventListener("click", openStatusOverview);
     
-    // Custom Select Listener
+    $("btnOpenOverview")?.addEventListener("click", openOverview);
+    $("btnCloseOverview")?.addEventListener("click", closeOverview);
+
     $("selectTrigger")?.addEventListener("click", toggleCustomSelect);
     document.addEventListener("click", e => {
       const cs = $("customSelect");
       if (cs && !cs.contains(e.target)) closeCustomSelect();
     });
 
-    // Statusübersicht Listener
-    $("btnCloseOverview")?.addEventListener("click", closeStatusOverview);
-    $("statusOverviewBackdrop")?.addEventListener("click", e => {
-      if (e.target === $("statusOverviewBackdrop")) closeStatusOverview();
-    });
-
     backdrop?.addEventListener("click", e => { if(e.target === backdrop) closeSheet(); });
 
-    // Mode setzen
     $("segFahrzeuge")?.classList.toggle("active", cfg.mode === "fahrzeuge");
     $("segGruppen")?.classList.toggle("active", cfg.mode === "gruppen");
 
-    // 1. Daten inklusive localStorage-Status laden
-    try {
-      data = loadData(); 
-    } catch(e) {
-      toast("data/gears.js nicht geladen.", "err");
-    }
+    try { data = loadData(); } catch(e) {}
 
-    // 2. Erst NACH dem Datenladen die UI + Tastenfarben aufbauen
     populateSelect();
 
-    if(!cfg.token) openSheet();
+    if(!cfg.apiToken && !cfg.basicToken && !cfg.token) {
+      openSheet();
+    } else {
+      startStatusPolling(3000);
+    }
+
     registerSW();
   });
 

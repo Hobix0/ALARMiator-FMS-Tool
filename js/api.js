@@ -2,22 +2,45 @@
    API-Anbindung an Alarminator.
    Endpunkt (Swagger):  GET /api/gear/setState
    Query-Parameter:     issi, radioStatusShort (0-9), token
-   Antwort:             { "success": 1, "description": "success" }
    ========================================================================== */
 window.FMS = window.FMS || {};
 
-/* Baut die konkrete Anfrage-URL. Reine Funktion (kein Netzwerk) -> gut testbar.
-   opts = { base, token, issi, status } */
+FMS.ENDPOINT = "/api/gear/setState";
+
 FMS.buildRequest = function(opts){
-  const url = new URL(opts.base.replace(/\/+$/,"") + FMS.ENDPOINT);
+  let baseUrl = opts.base.replace(/\/+$/, "");
+  
+  if (baseUrl.endsWith("/api")) {
+    baseUrl = baseUrl.substring(0, baseUrl.length - 4);
+  }
+
+  const url = new URL(baseUrl + FMS.ENDPOINT);
   url.searchParams.set("issi", opts.issi);
   url.searchParams.set("radioStatusShort", opts.status);
-  url.searchParams.set("token", opts.token);
-  return { url: url.toString(), options: { method:"GET", headers:{ "Accept":"application/json" } } };
+
+  // Der API-Token wird in die URL als ?token= gesetzt
+  const apiToken = (opts.token || "").trim();
+  url.searchParams.set("token", apiToken);
+
+  const headers = {
+    "Accept": "application/json"
+  };
+
+  // Falls zusätzlich ein Basic Auth Token angegeben wurde
+  const basicToken = (opts.basicToken || "").trim();
+  if (basicToken) {
+    headers["Authorization"] = basicToken.startsWith("Basic ") ? basicToken : "Basic " + basicToken;
+  }
+
+  return { 
+    url: url.toString(), 
+    options: { 
+      method: "GET", 
+      headers: headers
+    } 
+  };
 };
 
-/* Sendet EINEN Status an EINE ISSI. Gibt zurueck:
-   { ok:boolean, issi, code?:number, test?:boolean, message:string } */
 FMS.sendOne = async function(opts){
   const issi = opts.issi;
   if(opts.test){
@@ -26,14 +49,15 @@ FMS.sendOne = async function(opts){
   }
   if(!opts.base)  return { ok:false, issi, message:"Keine API-Basis-URL." };
   if(!issi)       return { ok:false, issi, message:"Keine ISSI hinterlegt." };
-  if(!opts.token) return { ok:false, issi, message:"Kein Token gesetzt." };
+  if(!opts.token && !opts.basicToken) return { ok:false, issi, message:"Kein Token gesetzt." };
 
   const { url, options } = FMS.buildRequest(opts);
   try{
     const res = await fetch(url, options);
     let data = null;
     try{ data = await res.json(); }catch(e){}
-    if(res.ok && (!data || data.success)){
+
+    if(res.ok && (!data || data.success === 1 || data.success === true)){
       return { ok:true, issi, code:res.status, message:(data && data.description) || "OK" };
     }
     const desc = data && data.description ? " - " + data.description : "";
