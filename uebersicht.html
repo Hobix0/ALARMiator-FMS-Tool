@@ -26,7 +26,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
+
     body {
       background-color: var(--bg);
       color: var(--text);
@@ -36,132 +36,34 @@
       overflow: auto;
     }
 
-    /* Container Standard */
-    #groupsContainer {
-      display: flex;
-      gap: 12px;
-      width: 100%;
-    }
+    #groupsContainer { display: flex; gap: 12px; width: 100%; }
 
-    /* 1. MODUS: FLACHES FENSTER (Höhe klein, breiter Bildschirm) */
-    @media (max-height: 300px) {
-      #groupsContainer {
-        flex-direction: row;
-        flex-wrap: nowrap;
-        align-items: flex-start;
-      }
-
-      .group-section {
-        background: var(--group-bg);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px;
-        flex: 0 0 auto;
-      }
-
-      .overview-grid {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 8px;
-      }
-    }
-
-    /* 2. MODUS: SCHMALES FENSTER (Hochformat / Liste) */
-    @media (max-width: 500px) and (min-height: 301px) {
-      #groupsContainer {
-        flex-direction: column;
-      }
-
-      .group-section {
-        background: var(--group-bg);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        padding: 10px;
-        width: 100%;
-      }
-
-      .overview-grid {
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-      }
-    }
-
-    /* 3. MODUS: KOMPAKT / QUADRATISCH (Ohne Gruppenrahmen) */
-    body.mode-compact #groupsContainer {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-start;
-    }
-
-    body.mode-compact .group-section {
-      background: transparent;
-      border: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    body.mode-compact .group-title {
-      display: none; /* Gruppentitel ausblenden */
-    }
-
-    body.mode-compact .overview-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    /* Grunddesign der Karten & Badges */
+    /* ===== Karten & Badges (gemeinsam) ===== */
     .group-title {
-      font-size: 0.85rem;
-      font-weight: 700;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: #aaa;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 4px;
+      font-size: 0.85rem; font-weight: 700; margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 0.8px; color: #aaa;
+      border-bottom: 1px solid var(--border); padding-bottom: 4px;
     }
-
     .v-card {
-      background: var(--card-bg);
-      border-radius: 8px;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 140px;
-      min-width: 140px;
-      min-height: 80px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      text-align: center;
-      flex-shrink: 0;
+      background: var(--card-bg); border-radius: 8px; padding: 8px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 140px; min-width: 140px; min-height: 80px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.3); text-align: center; flex-shrink: 0;
     }
-
     .v-badge {
-      font-size: 1.5rem;
-      font-weight: bold;
-      width: 38px;
-      height: 38px;
-      line-height: 38px;
-      border-radius: 6px;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 1.5rem; font-weight: bold; width: 38px; height: 38px;
+      border-radius: 6px; margin-bottom: 6px;
+      display: flex; align-items: center; justify-content: center;
     }
+    .v-name { font-size: 0.85rem; font-weight: 600; word-break: break-word; line-height: 1.1; width: 100%; }
 
-    .v-name {
-      font-size: 0.85rem;
-      font-weight: 600;
-      word-break: break-word;
-      line-height: 1.1;
-      width: 100%;
+    /* Listenzeile (fuer schmal & flach) */
+    .list-row {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px; flex-shrink: 0;
     }
+    .list-row .v-badge { margin: 0; width: 34px; height: 34px; font-size: 1.2rem; }
+    .list-row .v-name { text-align: left; width: auto; }
 
     /* Statusfarben */
     .v-badge[data-status="0"] { background-color: var(--status-0); color: #fff; }
@@ -174,6 +76,35 @@
     .v-badge[data-status="7"] { background-color: var(--status-7); color: #fff; }
     .v-badge[data-status="8"] { background-color: var(--status-8); color: #fff; }
     .v-badge[data-status="9"] { background-color: var(--status-9); color: #fff; }
+
+    /* ============================================================
+       MODUS 1: KATEGORISIERT (gross / quadratisch) - Standard
+       ============================================================ */
+    body[data-mode="cat"] #groupsContainer { flex-wrap: wrap; align-items: flex-start; }
+    body[data-mode="cat"] .group-section {
+      background: var(--group-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; flex: 1 1 240px; min-width: 240px;
+    }
+    body[data-mode="cat"] .overview-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    /* ============================================================
+       MODUS 2: SCHMAL (Hochformat) -> vertikale Liste
+       ============================================================ */
+    body[data-mode="narrow"] #groupsContainer { flex-direction: column; gap: 6px; }
+    body[data-mode="narrow"] .list-row { width: 100%; }
+    body[data-mode="narrow"] .list-row .v-name { flex: 1; }
+
+    /* ============================================================
+       MODUS 3: FLACH (Querformat, wenig Hoehe) -> horizontale Liste
+       ============================================================ */
+    body[data-mode="flat"] { overflow: hidden; }
+    body[data-mode="flat"] #groupsContainer {
+      flex-direction: row; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;
+      gap: 8px; padding-bottom: 6px;
+    }
+    body[data-mode="flat"] .list-row { flex-direction: column; align-items: center; width: 120px; text-align: center; }
+    body[data-mode="flat"] .list-row .v-badge { margin-bottom: 6px; }
+    body[data-mode="flat"] .list-row .v-name { text-align: center; }
   </style>
 </head>
 <body>
@@ -188,94 +119,106 @@
   <script src="js/config.js"></script>
   <script src="js/sync.js"></script>
   <script>
-    function updateLayoutMode() {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+    /* Layout-Modus aus den Fenstermassen bestimmen:
+       - flach (wenig Hoehe)  -> horizontale Liste
+       - schmal (wenig Breite) -> vertikale Liste
+       - sonst (gross/quadrat) -> nach Gruppen kategorisiert */
+    function currentMode() {
+      const w = window.innerWidth, h = window.innerHeight;
+      if (h < 300) return "flat";
+      if (w < 520) return "narrow";
+      return "cat";
+    }
 
-      // Quadratisches / kleines Fenster erkennen (Breite & Höhe > 300px, aber keine extremen Flach-/Schmal-Formate)
-      const isCompact = w > 500 && h > 300 && (w / h >= 0.75 && w / h <= 1.4);
+    function statusColorAttr(st) { return (st === undefined || st === null || st === "") ? "?" : st; }
 
-      if (isCompact) {
-        document.body.classList.add("mode-compact");
-      } else {
-        document.body.classList.remove("mode-compact");
-      }
+    function makeBadge(st) {
+      const b = document.createElement("div");
+      b.className = "v-badge";
+      b.dataset.status = st;
+      b.textContent = st;
+      return b;
+    }
+    function makeName(name) {
+      const n = document.createElement("div");
+      n.className = "v-name";
+      n.textContent = name;
+      return n;
+    }
+
+    function listRow(v, st) {
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.appendChild(makeBadge(st));
+      row.appendChild(makeName(v.name));
+      return row;
+    }
+
+    function vCard(v, st) {
+      const card = document.createElement("div");
+      card.className = "v-card";
+      card.appendChild(makeBadge(st));
+      card.appendChild(makeName(v.name));
+      return card;
+    }
+
+    function groupSection(title, vehicles, statusOf) {
+      const sec = document.createElement("div");
+      sec.className = "group-section";
+
+      const t = document.createElement("div");
+      t.className = "group-title";
+      t.textContent = title + " (" + vehicles.length + ")";
+      sec.appendChild(t);
+
+      const grid = document.createElement("div");
+      grid.className = "overview-grid";
+      vehicles.forEach(v => grid.appendChild(vCard(v, statusOf(v))));
+      sec.appendChild(grid);
+      return sec;
     }
 
     function render() {
-      updateLayoutMode();
+      const mode = currentMode();
+      document.body.dataset.mode = mode;
+
       const container = document.getElementById("groupsContainer");
       if (!container) return;
 
       let savedStatuses = {};
-      try {
-        savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {};
-      } catch(e) {}
+      try { savedStatuses = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {}; } catch (e) {}
 
       const fmsData = window.FMS_DATA || { fahrzeuge: [], gruppen: [] };
       const allVehicles = fmsData.fahrzeuge || [];
       const groups = fmsData.gruppen || [];
-
-      const vehicleMap = new Map();
-      allVehicles.forEach(v => {
-        const currentStatus = savedStatuses[v.name] !== undefined ? savedStatuses[v.name] : (v.status || 2);
-        vehicleMap.set(v.name, { ...v, status: currentStatus });
-      });
+      const statusOf = v => statusColorAttr(savedStatuses[v.name] !== undefined ? savedStatuses[v.name] : v.status);
 
       container.innerHTML = "";
-      const assignedVehicleNames = new Set();
 
-      groups.forEach(group => {
-        const groupMembers = (group.fahrzeuge || [])
-          .map(name => vehicleMap.get(name))
-          .filter(Boolean);
-
-        if (groupMembers.length > 0) {
-          groupMembers.forEach(v => assignedVehicleNames.add(v.name));
-          container.appendChild(createGroupSection(group.name, groupMembers));
-        }
-      });
-
-      const unassignedVehicles = allVehicles
-        .filter(v => !assignedVehicleNames.has(v.name))
-        .map(v => vehicleMap.get(v.name));
-
-      if (unassignedVehicles.length > 0) {
-        container.appendChild(createGroupSection("Sonstige", unassignedVehicles));
+      if (mode === "cat") {
+        // nach Gruppen kategorisiert
+        const byName = new Map(allVehicles.map(v => [v.name, v]));
+        const assigned = new Set();
+        groups.forEach(group => {
+          const members = (group.fahrzeuge || []).map(n => byName.get(n)).filter(Boolean);
+          if (members.length) {
+            members.forEach(v => assigned.add(v.name));
+            container.appendChild(groupSection(group.name, members, statusOf));
+          }
+        });
+        const rest = allVehicles.filter(v => !assigned.has(v.name));
+        if (rest.length) container.appendChild(groupSection("Sonstige", rest, statusOf));
+      } else {
+        // flache Liste (CSS macht daraus vertikal bzw. horizontal)
+        allVehicles.forEach(v => container.appendChild(listRow(v, statusOf(v))));
       }
-    }
-
-    function createGroupSection(title, vehicles) {
-      const groupEl = document.createElement("div");
-      groupEl.className = "group-section";
-
-      const titleEl = document.createElement("div");
-      titleEl.className = "group-title";
-      titleEl.textContent = `${title} (${vehicles.length})`;
-      groupEl.appendChild(titleEl);
-
-      const gridEl = document.createElement("div");
-      gridEl.className = "overview-grid";
-
-      vehicles.forEach(v => {
-        const card = document.createElement("div");
-        card.className = "v-card";
-        card.innerHTML = `
-          <div class="v-badge" data-status="${v.status}">${v.status}</div>
-          <div class="v-name">${v.name}</div>
-        `;
-        gridEl.appendChild(card);
-      });
-
-      groupEl.appendChild(gridEl);
-      return groupEl;
     }
 
     document.addEventListener("DOMContentLoaded", () => {
       render();
-      setInterval(render, 2000);
-      window.addEventListener("storage", render);
-      window.addEventListener("resize", render);
+      setInterval(render, 2000);           // regelmaessig aus dem (per Sync gefuellten) Speicher aktualisieren
+      window.addEventListener("storage", render);  // Aenderungen aus anderen Tabs
+      window.addEventListener("resize", render);   // Layout bei Groessenaenderung umschalten
     });
   </script>
 </body>

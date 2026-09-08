@@ -57,7 +57,7 @@
 
       <div class="field">
         <label for="fBase">API-Basis-URL</label>
-        <input id="fBase" placeholder="https://alarm.thw-remscheid.de">
+        <input id="fBase" placeholder="https://alarm.thw-remscheid.de" value="https://alarm.thw-remscheid.de">
       </div>
       
       <!-- Getrennte Token-Felder -->
@@ -81,7 +81,10 @@
         <div class="sheet status-modal">
           <div class="status-modal-header">
             <h2>Statusübersicht Fahrzeuge</h2>
-            <button id="btnCloseOverview" class="back" style="font-size: 20px;">✕</button>
+            <div class="status-modal-actions">
+              <button id="btnUndockOverview" class="back" title="In eigenem Fenster öffnen (für PC)" style="font-size:14px;">⧉ Abdocken</button>
+              <button id="btnCloseOverview" class="back" style="font-size: 20px;">✕</button>
+            </div>
           </div>
           
           <div id="statusOverviewList" class="status-list">

@@ -402,6 +402,14 @@
     $("statusOverviewBackdrop")?.classList.remove("open");
   }
 
+  function undockOverview() {
+    // Uebersicht als eigenes Fenster oeffnen (fuer PC / zweiten Monitor)
+    const win = window.open("uebersicht.html", "fmsUebersicht",
+      "width=1100,height=720,resizable=yes,scrollbars=yes");
+    if (!win) { toast("Popup wurde blockiert - bitte fuer diese Seite erlauben.", "err"); return; }
+    closeOverview();
+  }
+
 
  /* ---------- Status senden (inkl. hochpräzisem GPS & Karten-Update) ---------- */
   async function onKey(n){
@@ -589,6 +597,7 @@
     
     $("btnOpenOverview")?.addEventListener("click", openOverview);
     $("btnCloseOverview")?.addEventListener("click", closeOverview);
+    $("btnUndockOverview")?.addEventListener("click", undockOverview);
 
     $("selectTrigger")?.addEventListener("click", toggleCustomSelect);
     document.addEventListener("click", e => {
