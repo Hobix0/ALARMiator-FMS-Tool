@@ -402,12 +402,19 @@
     $("statusOverviewBackdrop")?.classList.remove("open");
   }
 
-  function undockOverview() {
-    // Uebersicht als eigenes Fenster oeffnen (fuer PC / zweiten Monitor)
-    const win = window.open("uebersicht.html", "fmsUebersicht",
-      "width=1100,height=720,resizable=yes,scrollbars=yes");
-    if (!win) { toast("Popup wurde blockiert - bitte fuer diese Seite erlauben.", "err"); return; }
-    closeOverview();
+  function undockOverview(e) {
+    // Bevorzugt ein eigenes Fenster (fuer PC / zweiten Monitor). Klappt das nicht
+    // (Popup-Blocker, PWA, mobil), uebernimmt der Link mit target="_blank".
+    let win = null;
+    try {
+      win = window.open("uebersicht.html", "fmsUebersicht",
+        "width=1100,height=720,resizable=yes,scrollbars=yes");
+    } catch (_) {}
+    if (win) {
+      if (e && e.preventDefault) e.preventDefault();  // eigenes Fenster genutzt -> Link-Standard unterdruecken
+      closeOverview();
+    }
+    // sonst: nichts tun -> der Link oeffnet regulaer einen neuen Tab
   }
 
 
