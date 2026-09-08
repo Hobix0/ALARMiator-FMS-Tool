@@ -1,14 +1,20 @@
-/* Minimaler Offline-Cache fuer die statischen Dateien.
-   API-Aufrufe (POST/GET an den Server) werden NICHT gecacht. */
-const CACHE = "fms-tool-v2";
+/* Service-Worker: Netzwerk zuerst, Cache als Fallback (offline).
+   "Netzwerk zuerst" verhindert, dass alte Dateien haengen bleiben - Aenderungen
+   kommen beim naechsten Laden mit Verbindung sofort an.
+   Fremd-Hosts (Firebase, Leaflet, OSM, API) werden NICHT behandelt/gecacht. */
+const CACHE = "fms-tool-v3";
 const ASSETS = [
   "./",
   "./index.html",
+  "./karte.html",
+  "./uebersicht.html",
   "./css/styles.css",
   "./js/config.js",
   "./js/statuses.js",
   "./js/api.js",
+  "./js/sync.js",
   "./js/app.js",
+  "./js/map.js",
   "./data/gears.js",
   "./manifest.webmanifest",
   "./icons/icon.svg"
@@ -28,7 +34,16 @@ self.addEventListener("activate", e => {
 
 self.addEventListener("fetch", e => {
   const req = e.request;
-  // Nur eigene statische GET-Dateien aus dem Cache bedienen.
-  if(req.method !== "GET" || new URL(req.url).origin !== location.origin) return;
-  e.respondWith(caches.match(req).then(hit => hit || fetch(req)));
+  const url = new URL(req.url);
+  if(req.method !== "GET" || url.origin !== location.origin) return; // API/CDN direkt ans Netz
+
+  e.respondWith(
+    fetch(req)
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(req))
+  );
 });

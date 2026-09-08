@@ -17,3 +17,21 @@ FMS.DEFAULT_CONFIG = {
 };
 
 FMS.STORAGE_KEY = "fmsCfg";
+
+/* ==========================================================================
+   Geteilter Positions-/Status-Sync (eigenes Backend via Firebase Realtime DB).
+   Ohne ausgefuellte databaseURL bleibt alles lokal (nur auf dem eigenen Geraet).
+   Anleitung siehe README, Abschnitt "Positions-Sync".
+   ========================================================================== */
+FMS.SYNC = {
+  ovKey: "remscheid",     // frei waehlbarer Bereich in der DB (alle Geraete gleich)
+  anonAuth: false,        // true, wenn die DB-Regeln "auth != null" verlangen
+  firebaseConfig: {
+    // Aus der Firebase-Konsole -> Projekteinstellungen -> "Web-App" kopieren:
+    apiKey: "",
+    authDomain: "",
+    databaseURL: "https://fmstool-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "",
+    appId: ""
+  }
+};

@@ -19,6 +19,8 @@
       font-family: sans-serif;
       box-shadow: 0 4px 6px rgba(0,0,0,0.3);
       min-width: 140px;
+      max-height: 340px;
+      overflow-y: auto;
     }
     .compact-cluster-item {
       display: flex;
@@ -51,13 +53,11 @@
     barHeight: 22,        // Höhe des Status-Balkens
     fontSize: 14,         // Schriftgröße der Statusnummer
     
-    // Grid-Raster Einstellungen (Abstände in Pixeln auf dem Bildschirm)
-    gridSpacingX: 90,     
-    gridSpacingY: 130,    // Platz für Namen unter dem Balken
-    maxColumns: 3,        
-
-    // Ab wie vielen Fahrzeugen auf eine Kompakt-Liste umgeschaltet wird
-    compactThreshold: 4,
+    // Ab diesem Pixel-Abstand gelten Fahrzeuge als "am selben Ort" und werden
+    // zu EINER kompakten Liste zusammengefasst (verhindert Icon-Ueberlagerung).
+    clusterRadius: 70,
+    // Maximale Hoehe der Kompakt-Liste (darueber wird sie scrollbar)
+    compactMaxHeight: 340,
 
     // Auto-Polling Interval (in Millisekunden)
     pollInterval: 3000,
@@ -218,6 +218,7 @@
       `;
     });
 
+    const boxHeight = Math.min(clusterVehicles.length * 20 + 30, MAP_CONFIG.compactMaxHeight);
     return L.divIcon({
       className: 'custom-vehicle-marker',
       html: `
@@ -228,13 +229,13 @@
           ${itemsHtml}
         </div>
       `,
-      iconSize: [160, clusterVehicles.length * 20 + 30],
-      iconAnchor: [80, (clusterVehicles.length * 20 + 30) / 2]
+      iconSize: [160, boxHeight],
+      iconAnchor: [80, boxHeight / 2]
     });
   }
 
   /* ---------- Einzelnen Marker (Standard) zeichnen / aktualisieren ---------- */
-  function drawOrUpdateMarker(vehicleName, displayLatLng) {
+  function drawOrUpdateMarker(key, vehicleName, displayLatLng) {
     const vehData = window.FMS_DATA?.fahrzeuge?.find(f => f.name === vehicleName) || {};
     const currentStatus = getSavedStatus(vehicleName, vehData.status);
 
@@ -247,15 +248,42 @@
       </div>
     `;
 
-    if (markers[vehicleName]) {
-      markers[vehicleName].setLatLng(displayLatLng);
-      markers[vehicleName].setIcon(icon);
-      markers[vehicleName].getPopup().setContent(popupContent);
+    if (markers[key]) {
+      markers[key].setLatLng(displayLatLng);
+      markers[key].setIcon(icon);
+      markers[key].getPopup().setContent(popupContent);
     } else {
-      markers[vehicleName] = L.marker(displayLatLng, { icon: icon })
+      markers[key] = L.marker(displayLatLng, { icon: icon })
         .bindPopup(popupContent)
         .addTo(map);
     }
+  }
+
+  /* ---------- Fahrzeuge nach Pixel-Naehe gruppieren (Single-Linkage) ----------
+     Verkettet alle Fahrzeuge, die naeher als clusterRadius beieinander liegen,
+     zu EINER Gruppe. Dadurch entstehen keine sich ueberlappenden Icons und auch
+     keine zwei Gruppen, die sich gegenseitig ueberdecken. */
+  function clusterByProximity(items, radiusPx) {
+    const pts = items.map(v => ({ v, p: map.latLngToContainerPoint([v.lat, v.lng]) }));
+    const used = new Array(pts.length).fill(false);
+    const clusters = [];
+    for (let i = 0; i < pts.length; i++) {
+      if (used[i]) continue;
+      const group = [pts[i].v];
+      used[i] = true;
+      const queue = [i];
+      while (queue.length) {
+        const a = queue.pop();
+        for (let j = 0; j < pts.length; j++) {
+          if (used[j]) continue;
+          const dx = pts[a].p.x - pts[j].p.x;
+          const dy = pts[a].p.y - pts[j].p.y;
+          if (Math.hypot(dx, dy) < radiusPx) { used[j] = true; group.push(pts[j].v); queue.push(j); }
+        }
+      }
+      clusters.push(group);
+    }
+    return clusters;
   }
 
   /* ---------- Alle Marker zeichnen ---------- */
@@ -264,149 +292,76 @@
 
     clearLines();
 
-    const activeVehicles = [];
+    // aktive Fahrzeuge mit Position sammeln (gespeicherte Position vor statischer)
+    const active = [];
     window.FMS_DATA.fahrzeuge.forEach(veh => {
-      // Prüfen, ob eine im LocalStorage gespeicherte Position existiert (durch Statusänderung/GPS-Setzen)
       const savedPos = getSavedPosition(veh.name);
       const lat = savedPos ? savedPos.lat : veh.lat;
       const lng = savedPos ? savedPos.lng : veh.lng;
-
-      if (lat && lng) {
-        activeVehicles.push({
-          name: veh.name,
-          lat: parseFloat(lat),
-          lng: parseFloat(lng)
-        });
-      }
+      if (lat && lng) active.push({ name: veh.name, lat: parseFloat(lat), lng: parseFloat(lng) });
     });
 
-    if (activeVehicles.length === 0) return;
+    const usedKeys = new Set();
+    const bounds = [];
 
-    const clusters = [];
-    activeVehicles.forEach(veh => {
-      const vehPoint = map.latLngToContainerPoint([veh.lat, veh.lng]);
-      let addedToCluster = false;
+    if (active.length) {
+      const clusters = clusterByProximity(active, MAP_CONFIG.clusterRadius);
 
-      for (const cluster of clusters) {
-        const centerPoint = map.latLngToContainerPoint([cluster[0].lat, cluster[0].lng]);
-        const pixelDist = Math.sqrt(
-          Math.pow(vehPoint.x - centerPoint.x, 2) + 
-          Math.pow(vehPoint.y - centerPoint.y, 2)
-        );
-
-        if (pixelDist < MAP_CONFIG.gridSpacingX) {
-          cluster.push(veh);
-          addedToCluster = true;
-          break;
-        }
-      }
-
-      if (!addedToCluster) {
-        clusters.push([veh]);
-      }
-    });
-
-    const allDisplayBounds = [];
-
-    clusters.forEach(cluster => {
-      const count = cluster.length;
-      const centerLatLng = L.latLng(cluster[0].lat, cluster[0].lng);
-      const centerPoint = map.latLngToContainerPoint(centerLatLng);
-
-      if (count === 1) {
-        const veh = cluster[0];
-        const displayLatLng = [veh.lat, veh.lng];
-        allDisplayBounds.push(displayLatLng);
-        drawOrUpdateMarker(veh.name, displayLatLng);
-      } 
-      else if (count >= MAP_CONFIG.compactThreshold) {
-        const clusterId = "compact_" + cluster.map(v => v.name).join("_");
-        const icon = createCompactClusterIcon(cluster);
-
-        const originMarker = L.circleMarker(centerLatLng, {
-          radius: 6,
-          color: '#d9363e',
-          fillColor: '#ffffff',
-          fillOpacity: 1,
-          weight: 3
-        }).addTo(map);
-        lines.push(originMarker);
-
-        if (markers[clusterId]) {
-          markers[clusterId].setLatLng(centerLatLng);
-          markers[clusterId].setIcon(icon);
+      clusters.forEach(cluster => {
+        if (cluster.length === 1) {
+          // Einzelnes Fahrzeug -> normales Icon
+          const v = cluster[0];
+          const key = "veh_" + v.name;
+          usedKeys.add(key);
+          drawOrUpdateMarker(key, v.name, [v.lat, v.lng]);
+          bounds.push([v.lat, v.lng]);
         } else {
-          markers[clusterId] = L.marker(centerLatLng, { icon: icon }).addTo(map);
-        }
-        allDisplayBounds.push(centerLatLng);
-      } 
-      else {
-        const originMarker = L.circleMarker(centerLatLng, {
-          radius: 6,
-          color: '#d9363e',
-          fillColor: '#ffffff',
-          fillOpacity: 1,
-          weight: 3
-        }).addTo(map);
-        lines.push(originMarker);
+          // Mehrere am selben Ort -> EINE kompakte Liste (keine Ueberlagerung)
+          const clat = cluster.reduce((s, v) => s + v.lat, 0) / cluster.length;
+          const clng = cluster.reduce((s, v) => s + v.lng, 0) / cluster.length;
+          const key = "cluster_" + cluster.map(v => v.name).sort().join("|");
+          usedKeys.add(key);
 
-        const cols = Math.min(count, MAP_CONFIG.maxColumns);
-        const rows = Math.ceil(count / cols);
-
-        cluster.forEach((veh, index) => {
-          const col = index % cols;
-          const row = Math.floor(index / cols);
-          const itemsInThisRow = (row === rows - 1 && count % cols !== 0) ? (count % cols) : cols;
-
-          const xOffset = (col - (itemsInThisRow - 1) / 2) * MAP_CONFIG.gridSpacingX;
-          const yOffset = (row - (rows - 1) / 2) * MAP_CONFIG.gridSpacingY;
-
-          const targetPoint = L.point(centerPoint.x + xOffset, centerPoint.y + yOffset);
-          const displayLatLng = map.containerPointToLatLng(targetPoint);
-
-          const line = L.polyline([centerLatLng, displayLatLng], {
-            color: '#1e293b',
-            weight: 2,
-            opacity: 0.7,
-            dashArray: '4, 4'
+          const dot = L.circleMarker([clat, clng], {
+            radius: 6, color: '#d9363e', fillColor: '#ffffff', fillOpacity: 1, weight: 3
           }).addTo(map);
-          lines.push(line);
+          lines.push(dot);
 
-          allDisplayBounds.push(displayLatLng);
-          drawOrUpdateMarker(veh.name, displayLatLng);
-        });
-      }
+          const icon = createCompactClusterIcon(cluster);
+          if (markers[key]) { markers[key].setLatLng([clat, clng]); markers[key].setIcon(icon); }
+          else { markers[key] = L.marker([clat, clng], { icon: icon }).addTo(map); }
+          bounds.push([clat, clng]);
+        }
+      });
+    }
+
+    // Veraltete Marker entfernen -> verhindert Geister-Icons beim Neuzeichnen
+    Object.keys(markers).forEach(k => {
+      if (!usedKeys.has(k)) { map.removeLayer(markers[k]); delete markers[k]; }
     });
 
-    if (shouldFitBounds && allDisplayBounds.length > 0) {
-      map.fitBounds(allDisplayBounds, {
+    if (shouldFitBounds && bounds.length > 0) {
+      map.fitBounds(bounds, {
         padding: MAP_CONFIG.boundsPadding,
         maxZoom: MAP_CONFIG.maxZoomOnBounds
       });
     }
   }
 
-  /* ---------- Globale Schnittstellen ---------- */
+  /* ---------- Globale Schnittstelle ---------- */
   window.MapModule = {
     init: initMap,
+    update: function() { renderAllVehicleMarkers(false); },
     updateVehiclePosition: function(vehicleName, lat, lng) {
       renderAllVehicleMarkers(true);
     }
   };
 
-  window.FMS_MAP = {
-    init: initMap,
-    update: function() {
-      renderAllVehicleMarkers(true);
-    }
-  };
-
-  /* Auto-Start & Intervall-Polling (Aktualisiert die Ansicht regelmäßig aus dem LocalStorage) */
+  /* Auto-Start & Intervall-Polling (aktualisiert die Ansicht regelmaessig) */
   document.addEventListener("DOMContentLoaded", () => {
     initMap();
-    
     setInterval(() => {
-      renderAllVehicleMarkers(false); // false = Zoom nicht ständig erzwingen beim Polling
+      renderAllVehicleMarkers(false); // beim Polling den Zoom nicht erzwingen
     }, MAP_CONFIG.pollInterval);
   });
 

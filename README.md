@@ -141,3 +141,58 @@ oder GitHub Pages an (dann als PWA installierbar).
 ## Lizenz
 
 MIT – siehe [LICENSE](LICENSE). Copyright-Zeile bitte anpassen.
+
+## Positions-Sync (eigenes Backend via Firebase)
+
+GitHub Pages ist rein statisch und kann selbst nichts speichern. Damit **alle**
+Geraete die Positionen und Status sehen (nicht nur das eigene), gibt es eine
+gemeinsame Ablage in einer **Firebase Realtime Database** (kostenloses
+Kontingent, reine Client-Anbindung, Echtzeit). Ohne Konfiguration laeuft die App
+unveraendert nur lokal.
+
+### Einrichtung (einmalig)
+
+1. Auf https://console.firebase.google.com ein kostenloses Projekt anlegen.
+2. **Build → Realtime Database → Datenbank erstellen** (Region z. B. `europe-west1`).
+3. **Projektuebersicht → Web-App hinzufuegen (`</>`)**; die angezeigten Werte
+   (`apiKey`, `authDomain`, `databaseURL`, `projectId`, `appId`) nach
+   `js/config.js` in `FMS.SYNC.firebaseConfig` eintragen. `databaseURL` ist Pflicht.
+4. `FMS.SYNC.ovKey` auf allen Geraeten gleich lassen (trennt z. B. mehrere OVs).
+
+Diese Firebase-Werte sind **keine Geheimnisse** und duerfen ins Repo – der Schutz
+laeuft ueber die Datenbank-Regeln (siehe unten).
+
+### Datenbank-Regeln
+
+Schneller Start (offen – jeder mit der URL kann lesen/schreiben, nur fuer Tests):
+
+```json
+{ "rules": { "fms": { "$ov": { ".read": true, ".write": true } } } }
+```
+
+Empfohlen (nur angemeldete Geraete). Dazu in der Firebase-Konsole unter
+**Authentication** die **anonyme Anmeldung** aktivieren und in `js/config.js`
+`FMS.SYNC.anonAuth = true` setzen:
+
+```json
+{ "rules": { "fms": { "$ov": { ".read": "auth != null", ".write": "auth != null" } } } }
+```
+
+Hinweis: Auch das ist kein starker Schutz (jeder kann sich anonym anmelden). Fuer
+sensible Nutzung sollte ein echtes Login/serverseitiger Schutz davor. Fuer eine
+interne OV-Nutzung ist es in der Regel ausreichend.
+
+### Ablauf
+
+Beim Druecken eines Status wird der Status – und nach der GPS-Abfrage die Position –
+an die geteilte DB gemeldet (`FMS.Sync.publish`). Alle Geraete erhalten die
+Aenderung in Echtzeit; Karte und Uebersicht lesen sie automatisch (die Sync-Schicht
+spiegelt sie in dieselben `localStorage`-Keys, die die Ansichten ohnehin lesen).
+
+Datenmodell in der DB: `fms/<ovKey>/vehicles/<key> = { name, issi, status, lat, lng, ts }`.
+
+### Alternative
+
+Statt Firebase geht auch **Supabase** (Postgres + Realtime, ebenfalls kostenloses
+Kontingent). Die Sync-Schicht in `js/sync.js` ist die einzige Stelle, die man dafuer
+austauschen muesste.

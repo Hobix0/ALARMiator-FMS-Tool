@@ -114,6 +114,14 @@
     } catch(e) {}
   }
 
+  function saveVehiclePosition(vehicleName, lat, lng) {
+    try {
+      const saved = JSON.parse(localStorage.getItem("FMS_VEHICLE_POSITIONS")) || {};
+      saved[vehicleName] = { lat, lng, timestamp: new Date().toISOString() };
+      localStorage.setItem("FMS_VEHICLE_POSITIONS", JSON.stringify(saved));
+    } catch(e) {}
+  }
+
   /* ---------- Status per GET abfragen (Nutzung von Basic Auth) ---------- */
   async function fetchRemoteStatuses() {
     const basicToken = cfg.basicToken || cfg.token;
@@ -158,6 +166,16 @@
           if (!isNaN(newStatus) && veh.status !== newStatus) {
             veh.status = newStatus;
             saveVehicleStatus(veh.name, newStatus);
+            hasChanges = true;
+          }
+
+          // Position aus der Serverantwort uebernehmen, falls vorhanden ->
+          // dadurch sehen ALLE die Position (nicht nur das eigene Geraet).
+          // Feldnamen ggf. an die echte API anpassen (Beispielkandidaten unten).
+          const rlat = item.latitude ?? item.lat ?? (item.position && item.position.lat) ?? (item.gps && item.gps.lat);
+          const rlng = item.longitude ?? item.lng ?? item.lon ?? (item.position && item.position.lng) ?? (item.gps && item.gps.lng);
+          if (rlat != null && rlat !== "" && rlng != null && rlng !== "") {
+            saveVehiclePosition(veh.name, parseFloat(rlat), parseFloat(rlng));
             hasChanges = true;
           }
         }
@@ -420,6 +438,9 @@
           savedStatuses[m.name] = n;
           localStorage.setItem("FMS_VEHICLE_STATUSES", JSON.stringify(savedStatuses));
         } catch(e) {}
+
+        // Status an den geteilten Sync melden (sehen alle)
+        if (FMS.Sync && FMS.Sync.publish) FMS.Sync.publish(m.name, { issi: m.issi, status: n });
       }
     });
 
@@ -442,11 +463,30 @@
             if (window.MapModule && typeof window.MapModule.updateVehiclePosition === "function") {
               window.MapModule.updateVehiclePosition(m.name, lat, lng);
             }
+
+            // Position (mit aktuellem Status) an den geteilten Sync melden (sehen alle)
+            if (FMS.Sync && FMS.Sync.publish) FMS.Sync.publish(m.name, { issi: m.issi, lat: lat, lng: lng, status: n });
           });
 
           try {
             localStorage.setItem("FMS_VEHICLE_POSITIONS", JSON.stringify(savedPositions));
           } catch(e) {}
+
+          // Position auch zentral an den Server senden, sobald ein Positions-
+          // Endpunkt konfiguriert ist (siehe FMS.POSITION_ENDPOINT in js/api.js).
+          // Erst dann ist die Position fuer ANDERE sichtbar.
+          if (!cfg.test && FMS.POSITION_ENDPOINT) {
+            target.members.forEach(m => {
+              FMS.sendPosition({
+                base: cfg.base,
+                token: cfg.apiToken || cfg.token,
+                basicToken: cfg.basicToken,
+                issi: m.issi,
+                lat: lat,
+                lng: lng
+              });
+            });
+          }
         },
         (err) => console.warn("GPS-Abfrage fehlerhaft:", err),
         { 
@@ -479,8 +519,8 @@
   const POLL_INTERVAL = 5000; 
 
   setInterval(() => {
-    if (window.FMS_MAP && typeof window.FMS_MAP.update === "function") {
-      window.FMS_MAP.update();
+    if (window.MapModule && typeof window.MapModule.update === "function") {
+      window.MapModule.update();
     }
   }, POLL_INTERVAL);
 
