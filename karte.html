@@ -84,6 +84,39 @@
   <!-- Karte -->
   <div id="map"></div>
 
+  <!-- PIN-Abfrage Overlay -->
+  <div class="pin-backdrop" id="pinBackdrop">
+    <div class="pin-card">
+      <h3>PIN-Eingabe</h3>
+      <p class="pin-hint">Bitte PIN eingeben, um fortzufahren.</p>
+
+      <div class="pin-dots" id="pinDots">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot"></span>
+      </div>
+
+      <div class="pin-keypad">
+        <button class="pin-btn" data-val="1">1</button>
+        <button class="pin-btn" data-val="2">2</button>
+        <button class="pin-btn" data-val="3">3</button>
+        <button class="pin-btn" data-val="4">4</button>
+        <button class="pin-btn" data-val="5">5</button>
+        <button class="pin-btn" data-val="6">6</button>
+        <button class="pin-btn" data-val="7">7</button>
+        <button class="pin-btn" data-val="8">8</button>
+        <button class="pin-btn" data-val="9">9</button>
+        <button class="pin-btn del" id="btnPinClear">C</button>
+        <button class="pin-btn" data-val="0">0</button>
+        <button class="pin-btn ok" id="btnPinSubmit">✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast (z. B. bei falscher PIN) -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
   <!-- Externe Bibliotheken -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
