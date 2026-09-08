@@ -350,6 +350,32 @@
     });
   }
 
+  /* Aktuelle Status aus dem lokalen Speicher (wird u. a. vom Sync gefuellt)
+     ins Datenobjekt uebernehmen und die Badges im Dropdown in-place erneuern. */
+  function readStatusesIntoData(){
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem("FMS_VEHICLE_STATUSES")) || {}; } catch(e) {}
+    (data.fahrzeuge || []).forEach(f => {
+      if (saved[f.name] !== undefined) f.status = saved[f.name];
+    });
+  }
+
+  function refreshStatusUI(){
+    readStatusesIntoData();
+    document.querySelectorAll("#selectDropdown .select-option").forEach(opt => {
+      const veh = (data.fahrzeuge || []).find(f => f.name === opt.dataset.value);
+      if (!veh) return; // Gruppen haben keinen Einzelstatus
+      const b = opt.querySelector(".status-badge");
+      if (b) {
+        const s = veh.status !== undefined ? veh.status : "?";
+        b.textContent = s;
+        b.dataset.status = s;
+      }
+    });
+    updateSelectUI();
+    if ($("statusOverviewBackdrop")?.classList.contains("open")) renderStatusOverview();
+  }
+
   function toggleCustomSelect() {
     const cs = $("customSelect");
     if (!cs) return;
@@ -543,7 +569,7 @@
   const backdrop = $("sheetBackdrop");
   
   function openSheet(){
-    if($("fBase")) $("fBase").value = cfg.base || "";
+    if($("fBase")) $("fBase").value = cfg.base || (FMS.DEFAULT_CONFIG && FMS.DEFAULT_CONFIG.base) || "";
     if($("fApiToken")) $("fApiToken").value = cfg.apiToken || cfg.token || "";
     if($("fBasicToken")) $("fBasicToken").value = cfg.basicToken || "";
     if($("fTest")) $("fTest").checked = cfg.test;
@@ -620,6 +646,8 @@
     try { data = loadData(); } catch(e) {}
 
     populateSelect();
+    refreshStatusUI();
+    setInterval(refreshStatusUI, 2000);   // Statusaenderungen (Sync/Server) ins Dropdown uebernehmen
 
     if(!cfg.apiToken && !cfg.basicToken && !cfg.token) {
       openSheet();
