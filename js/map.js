@@ -48,6 +48,17 @@
 
   let map = null;
   let lastFitSig = null;   // verhindert wiederholtes Zentrieren bei gleicher Lage
+
+  /* Entfernung zwischen zwei Koordinaten in Metern (Haversine). */
+  function distanceMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
   const markers = {}; // Speichert Marker nach Fahrzeug-Name
   const lines = [];   // Speichert Verbindungslinien
 
@@ -81,16 +92,27 @@
     // Rand beim Zentrieren (in Pixeln). Oben mehr Platz fuer die Sprechblasen,
     // damit Namen/Listen nach dem Fit nicht abgeschnitten werden.
     padTopLeft: [60, 170],
-    padBottomRight: [60, 90]
+    padBottomRight: [60, 90],
+
+    // Fahrzeuge, die "an der Unterkunft" stehen, ausblenden (entlastet die Karte):
+    // nur beim angegebenen Status UND innerhalb radiusM um die Basis-Koordinate.
+    hideAtBase: {
+      enabled: true,
+      status: 2,       // nur diesen Status ausblenden (2 = Einsatzbereit Unterkunft)
+      radiusM: 100,     // Radius in Metern
+      // Unterkunft: Auf dem Knapp 21, 42855 Remscheid (THW OV Remscheid).
+      lat: 51.182937,
+      lng: 7.2301839
+    }
   };
 
   /* ---------- Farbschema für den Status-Balken ---------- */
   const STATUS_COLORS = {
-    0: "#8c8c8c", // Notruf / Grau
+    0: "#ff0000", // Notruf / Grau
     1: "#2db7f5", // Frei auf Funk / Hellblau
     2: "#52c41a", // Einsatzbereit Wache / Grün
     3: "#fa8c16", // Einsatz übernommen / Orange
-    4: "#f5222d", // Am Einsatzort / Rot
+    4: "#ff6f76", // Am Einsatzort / Rot
     5: "#13c2c2", // Sprechwunsch / Cyan
     6: "#595959", // Nicht einsatzbereit / Dunkelgrau
     7: "#eb2f96", // Patient aufgenommen / Magenta
@@ -336,11 +358,23 @@
 
     // aktive Fahrzeuge mit Position sammeln (gespeicherte Position vor statischer)
     const active = [];
+    const hb = MAP_CONFIG.hideAtBase;
     window.FMS_DATA.fahrzeuge.forEach(veh => {
       const savedPos = getSavedPosition(veh.name);
-      const lat = savedPos ? savedPos.lat : veh.lat;
-      const lng = savedPos ? savedPos.lng : veh.lng;
-      if (lat && lng) active.push({ name: veh.name, lat: parseFloat(lat), lng: parseFloat(lng) });
+      const lat = savedPos ? parseFloat(savedPos.lat) : parseFloat(veh.lat);
+      const lng = savedPos ? parseFloat(savedPos.lng) : parseFloat(veh.lng);
+      if (!lat || !lng) return;
+
+      // An der Unterkunft parkende Fahrzeuge ausblenden (Status + Radius)
+      if (hb && hb.enabled) {
+        const st = getSavedStatus(veh.name, veh.status);
+        if (Number(st) === Number(hb.status) &&
+            distanceMeters(lat, lng, hb.lat, hb.lng) <= hb.radiusM) {
+          return; // nicht anzeigen
+        }
+      }
+
+      active.push({ name: veh.name, lat: lat, lng: lng });
     });
 
     const usedKeys = new Set();
@@ -405,6 +439,18 @@
     update: function() { renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT); },
     updateVehiclePosition: function(vehicleName, lat, lng) {
       renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT);
+    },
+    // Basis-Koordinate/Radius/Status live setzen (zum Testen in der Konsole):
+    //   MapModule.setHideBase(51.1723, 7.1996, 25, 2)
+    setHideBase: function(lat, lng, radiusM, status) {
+      MAP_CONFIG.hideAtBase.lat = lat;
+      MAP_CONFIG.hideAtBase.lng = lng;
+      if (radiusM !== undefined) MAP_CONFIG.hideAtBase.radiusM = radiusM;
+      if (status !== undefined) MAP_CONFIG.hideAtBase.status = status;
+      MAP_CONFIG.hideAtBase.enabled = true;
+      lastFitSig = null;
+      renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT);
+      console.log("[Map] Basis gesetzt:", MAP_CONFIG.hideAtBase);
     }
   };
 
