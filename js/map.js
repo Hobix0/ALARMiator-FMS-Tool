@@ -178,6 +178,24 @@
 
     placeBaseMarker();
     renderAllVehicleMarkers(true);
+
+    // Wichtig fuer iframes: Container-Groesse ist anfangs oft noch nicht final.
+    // Neu vermessen und (im Embed) einmal sauber neu zentrieren.
+    function handleResize() {
+      if (!map) return;
+      map.invalidateSize();
+      if (window.FMS_MAP_AUTOFIT) { lastFitSig = null; renderAllVehicleMarkers(true); }
+    }
+    setTimeout(handleResize, 0);
+    setTimeout(handleResize, 300);
+    window.addEventListener("resize", handleResize);
+    if (window.ResizeObserver) {
+      let rzTimer = null;
+      new ResizeObserver(() => {
+        clearTimeout(rzTimer);
+        rzTimer = setTimeout(handleResize, 150);   // entprellt gegen Dauer-Refits
+      }).observe(mapContainer);
+    }
   }
 
   /* ---------- Custom-Icon mit Namen & Status erzeugen ---------- */
@@ -393,7 +411,9 @@
     });
 
     const usedKeys = new Set();
-    const bounds = [];
+    // Zentrierung/Signatur aus den ROHEN Positionen (zoom-unabhaengig) -> stabil,
+    // kein Aufschaukeln durch das zoomabhaengige Clustering.
+    const bounds = active.map(v => [v.lat, v.lng]);
 
     if (active.length) {
       const clusters = clusterByProximity(active, MAP_CONFIG.clusterRadius);
@@ -405,7 +425,6 @@
           const key = "veh_" + v.name;
           usedKeys.add(key);
           drawOrUpdateMarker(key, v.name, [v.lat, v.lng]);
-          bounds.push([v.lat, v.lng]);
         } else {
           // Mehrere am selben Ort -> EINE kompakte Liste (keine Ueberlagerung)
           const clat = cluster.reduce((s, v) => s + v.lat, 0) / cluster.length;
@@ -421,7 +440,6 @@
           const icon = createCompactClusterIcon(cluster);
           if (markers[key]) { markers[key].setLatLng([clat, clng]); markers[key].setIcon(icon); }
           else { markers[key] = L.marker([clat, clng], { icon: icon }).addTo(map); }
-          bounds.push([clat, clng]);
         }
       });
     }
