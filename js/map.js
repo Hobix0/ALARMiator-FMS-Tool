@@ -48,6 +48,20 @@
 
   let map = null;
   let lastFitSig = null;   // verhindert wiederholtes Zentrieren bei gleicher Lage
+  let baseMarker = null;   // roter Punkt = Unterkunft/Wache
+
+  /* Roten Punkt an der Basis-Koordinate (Wache) setzen/aktualisieren. */
+  function placeBaseMarker() {
+    const hb = MAP_CONFIG.hideAtBase;
+    if (!map || !hb || !hb.lat || !hb.lng) return;
+    const latlng = [hb.lat, hb.lng];
+    if (baseMarker) { baseMarker.setLatLng(latlng); return; }
+    baseMarker = L.circleMarker(latlng, {
+      radius: 7, color: '#ffffff', weight: 2, fillColor: '#e11021', fillOpacity: 1
+    }).addTo(map);
+    baseMarker.bindPopup('<b>Unterkunft / Wache</b>');
+    baseMarker.bindTooltip('Wache', { direction: 'top', offset: [0, -6] });
+  }
 
   /* Entfernung zwischen zwei Koordinaten in Metern (Haversine). */
   function distanceMeters(lat1, lng1, lat2, lng2) {
@@ -112,7 +126,7 @@
     1: "#2db7f5", // Frei auf Funk / Hellblau
     2: "#52c41a", // Einsatzbereit Wache / Grün
     3: "#fa8c16", // Einsatz übernommen / Orange
-    4: "#ff6f76", // Am Einsatzort / Rot
+    4: "#ff757b", // Am Einsatzort / Rot
     5: "#13c2c2", // Sprechwunsch / Cyan
     6: "#595959", // Nicht einsatzbereit / Dunkelgrau
     7: "#eb2f96", // Patient aufgenommen / Magenta
@@ -162,6 +176,7 @@
       renderAllVehicleMarkers(false);
     });
 
+    placeBaseMarker();
     renderAllVehicleMarkers(true);
   }
 
@@ -449,6 +464,7 @@
       if (status !== undefined) MAP_CONFIG.hideAtBase.status = status;
       MAP_CONFIG.hideAtBase.enabled = true;
       lastFitSig = null;
+      placeBaseMarker();
       renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT);
       console.log("[Map] Basis gesetzt:", MAP_CONFIG.hideAtBase);
     }
