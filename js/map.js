@@ -11,6 +11,9 @@
       background: transparent !important;
       border: none !important;
     }
+    .compact-cluster-wrap {
+      display: flex; flex-direction: column; align-items: center;
+    }
     .compact-cluster-box {
       background: #ffffff;
       border: 2px solid #1e293b;
@@ -18,9 +21,16 @@
       padding: 6px 10px;
       font-family: sans-serif;
       box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-      min-width: 140px;
-      max-height: 340px;
-      overflow-y: auto;
+      min-width: 150px;
+      white-space: nowrap;
+    }
+    .compact-cluster-tail {
+      width: 0; height: 0;
+      border-left: 9px solid transparent;
+      border-right: 9px solid transparent;
+      border-top: 12px solid #1e293b;
+      margin-top: -1px;
+      filter: drop-shadow(0 2px 1px rgba(0,0,0,0.3));
     }
     .compact-cluster-item {
       display: flex;
@@ -222,19 +232,26 @@
       `;
     });
 
-    const boxHeight = Math.min(clusterVehicles.length * 20 + 30, MAP_CONFIG.compactMaxHeight);
+    const rowH = 22, headerH = 30, padV = 12, tailH = 12;
+    const boxHeight = clusterVehicles.length * rowH + headerH + padV;
+    const width = 190;
+    const total = boxHeight + tailH;
+
     return L.divIcon({
       className: 'custom-vehicle-marker',
       html: `
-        <div class="compact-cluster-box">
-          <div style="font-size: 10px; color: #64748b; margin-bottom: 3px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">
-            ⚠️ ${clusterVehicles.length} Fahrzeuge vor Ort
+        <div class="compact-cluster-wrap">
+          <div class="compact-cluster-box">
+            <div style="font-size: 10px; color: #64748b; margin-bottom: 3px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">
+              ⚠️ ${clusterVehicles.length} Fahrzeuge vor Ort
+            </div>
+            ${itemsHtml}
           </div>
-          ${itemsHtml}
+          <div class="compact-cluster-tail"></div>
         </div>
       `,
-      iconSize: [160, boxHeight],
-      iconAnchor: [80, boxHeight / 2]
+      iconSize: [width, total],
+      iconAnchor: [width / 2, total]   // Pfeilspitze sitzt genau auf der Position
     });
   }
 
@@ -368,9 +385,11 @@
   /* ---------- Globale Schnittstelle ---------- */
   window.MapModule = {
     init: initMap,
-    update: function() { renderAllVehicleMarkers(false); },
+    // Embed (FMS_MAP_AUTOFIT=true) zentriert bei Updates weiter auf alle Einheiten;
+    // normale Karte fittet nicht neu -> frei zoom-/scrollbar.
+    update: function() { renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT); },
     updateVehiclePosition: function(vehicleName, lat, lng) {
-      renderAllVehicleMarkers(true);
+      renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT);
     }
   };
 
@@ -378,7 +397,8 @@
   document.addEventListener("DOMContentLoaded", () => {
     initMap();
     setInterval(() => {
-      renderAllVehicleMarkers(false); // beim Polling den Zoom nicht erzwingen
+      // nur die Embed-Karte zentriert regelmaessig neu auf alle Einheiten
+      renderAllVehicleMarkers(!!window.FMS_MAP_AUTOFIT);
     }, MAP_CONFIG.pollInterval);
   });
 
