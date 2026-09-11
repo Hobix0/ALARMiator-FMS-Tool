@@ -197,6 +197,11 @@ body {
 
 .keypad .key:active { transform: scale(.97); }
 .keypad .key.zero { grid-column: 1 / -1; min-height: 0; }
+.keypad .key.disabled {
+  opacity: 0.35; filter: grayscale(0.7); cursor: not-allowed; pointer-events: none;
+  box-shadow: none;
+}
+.keypad .key.disabled:active { transform: none; }
 
 .keypad .key .key-num {
   font-size: 1.5rem; font-weight: bold; line-height: 1.1;

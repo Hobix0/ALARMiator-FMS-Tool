@@ -25,6 +25,10 @@ FMS.STATUS = {
 /* Reihenfolge im Tastenfeld (klassisch, 0 unten mittig) */
 FMS.ORDER = [1,2,3,4,5,6,7,8,9,0];
 
+/* Deaktivierte Status: diese Tasten werden ausgegraut und sind nicht klickbar.
+   Zum Wieder-Aktivieren einfach die Zahl aus dem Array entfernen. */
+FMS.DISABLED_STATUS = [7, 8, 9];
+
 /* Statusfarbe -> CSS-Variable (fuer die Anzeige-Leiste) */
 FMS.COLORVAR = {
   "c-green":"var(--green)", "c-amber":"var(--amber)", "c-red":"var(--red)",

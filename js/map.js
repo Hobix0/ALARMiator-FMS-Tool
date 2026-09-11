@@ -62,6 +62,10 @@
     // Auto-Polling Interval (in Millisekunden)
     pollInterval: 3000,
 
+    // Positionen, die aelter als X Minuten sind, werden abgeblendet dargestellt
+    // (0 = Funktion aus). Zeigt auf einen Blick, was noch aktuell ist.
+    staleMinutes: 30,
+
     // Zoom-Einstellungen
     maxZoomOnBounds: 16,  
     boundsPadding: [50, 50]
@@ -239,21 +243,34 @@
     const vehData = window.FMS_DATA?.fahrzeuge?.find(f => f.name === vehicleName) || {};
     const currentStatus = getSavedStatus(vehicleName, vehData.status);
 
+    // Alter der Position bestimmen (fuer Abblenden + Zeitstempel im Popup)
+    const saved = getSavedPosition(vehicleName);
+    let opacity = 1;
+    let stampLine = "";
+    if (saved && saved.timestamp) {
+      const d = new Date(saved.timestamp);
+      const ageMin = (Date.now() - d.getTime()) / 60000;
+      if (MAP_CONFIG.staleMinutes > 0 && ageMin > MAP_CONFIG.staleMinutes) opacity = 0.4;
+      const t = d.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+      stampLine = `<br><small style="font-size: 11px; color:${opacity < 1 ? '#c0392b' : '#888'};">Stand: ${t}${opacity < 1 ? ' (veraltet)' : ''}</small>`;
+    }
+
     const icon = createVehicleIcon(vehicleName, vehData.icon, currentStatus);
     const popupContent = `
       <div style="text-align: center; font-family: sans-serif;">
         <strong style="font-size: 15px;">${vehicleName}</strong><br>
         <span style="font-size: 13px; color: #444;">Status: <b style="color:${STATUS_COLORS[currentStatus] || '#000'}">${currentStatus}</b></span><br>
-        <small style="font-size: 11px; color: #888;">ISSI: ${vehData.issi || '-'}</small>
+        <small style="font-size: 11px; color: #888;">ISSI: ${vehData.issi || '-'}</small>${stampLine}
       </div>
     `;
 
     if (markers[key]) {
       markers[key].setLatLng(displayLatLng);
       markers[key].setIcon(icon);
+      markers[key].setOpacity(opacity);
       markers[key].getPopup().setContent(popupContent);
     } else {
-      markers[key] = L.marker(displayLatLng, { icon: icon })
+      markers[key] = L.marker(displayLatLng, { icon: icon, opacity: opacity })
         .bindPopup(popupContent)
         .addTo(map);
     }

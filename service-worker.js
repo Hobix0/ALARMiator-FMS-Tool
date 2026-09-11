@@ -7,6 +7,7 @@ const ASSETS = [
   "./",
   "./index.html",
   "./karte.html",
+  "./karte-embed.html",
   "./uebersicht.html",
   "./css/styles.css",
   "./js/config.js",

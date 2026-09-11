@@ -28,7 +28,7 @@
   }
 
   /* ---------- PIN-Schutz Logik ---------- */
-  const TARGET_PIN = "2318";
+  const TARGET_PIN = "6630";
   let currentPinInput = "";
 
   function initPinLock() {
@@ -211,17 +211,19 @@
     keypad.innerHTML = "";
     FMS.ORDER.forEach(n => {
       const s = FMS.STATUS[n];
+      const disabled = Array.isArray(FMS.DISABLED_STATUS) && FMS.DISABLED_STATUS.includes(n);
       const b = document.createElement("button");
-      b.className = "key" + (n === 0 ? " zero" : "");
+      b.className = "key" + (n === 0 ? " zero" : "") + (disabled ? " disabled" : "");
       b.dataset.status = n;
-      b.setAttribute("aria-label", "Status " + n + ": " + s.label);
+      if (disabled) b.setAttribute("disabled", "");
+      b.setAttribute("aria-label", "Status " + n + ": " + s.label + (disabled ? " (deaktiviert)" : ""));
 
       b.innerHTML = `
         <span class="key-num">${n}</span>
         <span class="key-label">${s.label}</span>
       `;
 
-      b.addEventListener("click", () => onKey(n));
+      if (!disabled) b.addEventListener("click", () => onKey(n));
       keypad.appendChild(b);
     });
   }
@@ -446,6 +448,7 @@
 
  /* ---------- Status senden (inkl. hochpräzisem GPS & Karten-Update) ---------- */
   async function onKey(n){
+    if (Array.isArray(FMS.DISABLED_STATUS) && FMS.DISABLED_STATUS.includes(Number(n))) return;
     const target = currentTarget();
     if(!target || !target.members.length){
       toast(cfg.mode === "gruppen" ? "Gruppe ohne Fahrzeuge." : "Kein Fahrzeug gewählt.", "err");
