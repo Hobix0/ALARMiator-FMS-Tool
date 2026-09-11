@@ -32,17 +32,16 @@
       margin-top: -1px;
       filter: drop-shadow(0 2px 1px rgba(0,0,0,0.3));
     }
-    .compact-cluster-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      font-weight: bold;
-      padding: 2px 0;
-      border-bottom: 1px solid #f1f5f9;
+    .compact-cluster-title {
+      font-size: 10px; color: #64748b; text-align: center;
+      border-bottom: 1px solid #e2e8f0; padding-bottom: 3px; margin-bottom: 4px;
     }
-    .compact-cluster-item:last-child {
-      border-bottom: none;
+    .compact-cluster-grid {
+      display: grid; gap: 3px 16px;
+    }
+    .compact-cluster-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      font-size: 12px; font-weight: bold; color: #1e293b;
     }
   `;
   document.head.appendChild(style);
@@ -226,15 +225,20 @@
 
       itemsHtml += `
         <div class="compact-cluster-item">
-          <span style="margin-right: 10px; color: #1e293b;">${veh.name}</span>
+          <span style="color: #1e293b;">${veh.name}</span>
           <span style="background: ${color}; color: #fff; padding: 1px 6px; border-radius: 3px; font-size: 11px;">${currentStatus}</span>
         </div>
       `;
     });
 
-    const rowH = 22, headerH = 30, padV = 12, tailH = 12;
-    const boxHeight = clusterVehicles.length * rowH + headerH + padV;
-    const width = 190;
+    // Mehrspaltig, damit der Kasten bei vielen Fahrzeugen niedrig bleibt
+    const count = clusterVehicles.length;
+    const cols = count > 16 ? 3 : (count > 8 ? 2 : 1);
+    const rows = Math.ceil(count / cols);
+
+    const rowH = 22, headerH = 26, padV = 14, tailH = 12, colW = 150;
+    const boxHeight = rows * rowH + headerH + padV;
+    const width = cols * colW + 24;
     const total = boxHeight + tailH;
 
     return L.divIcon({
@@ -242,10 +246,10 @@
       html: `
         <div class="compact-cluster-wrap">
           <div class="compact-cluster-box">
-            <div style="font-size: 10px; color: #64748b; margin-bottom: 3px; text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px;">
-              ⚠️ ${clusterVehicles.length} Fahrzeuge vor Ort
+            <div class="compact-cluster-title">⚠️ ${count} Fahrzeuge vor Ort</div>
+            <div class="compact-cluster-grid" style="grid-template-columns: repeat(${cols}, max-content);">
+              ${itemsHtml}
             </div>
-            ${itemsHtml}
           </div>
           <div class="compact-cluster-tail"></div>
         </div>
