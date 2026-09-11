@@ -47,6 +47,7 @@
   document.head.appendChild(style);
 
   let map = null;
+  let lastFitSig = null;   // verhindert wiederholtes Zentrieren bei gleicher Lage
   const markers = {}; // Speichert Marker nach Fahrzeug-Name
   const lines = [];   // Speichert Verbindungslinien
 
@@ -76,8 +77,11 @@
     staleMinutes: 30,
 
     // Zoom-Einstellungen
-    maxZoomOnBounds: 16,  
-    boundsPadding: [50, 50]
+    maxZoomOnBounds: 16,
+    // Rand beim Zentrieren (in Pixeln). Oben mehr Platz fuer die Sprechblasen,
+    // damit Namen/Listen nach dem Fit nicht abgeschnitten werden.
+    padTopLeft: [60, 170],
+    padBottomRight: [60, 90]
   };
 
   /* ---------- Farbschema für den Status-Balken ---------- */
@@ -379,10 +383,17 @@
     });
 
     if (shouldFitBounds && bounds.length > 0) {
-      map.fitBounds(bounds, {
-        padding: MAP_CONFIG.boundsPadding,
-        maxZoom: MAP_CONFIG.maxZoomOnBounds
-      });
+      // Signatur der aktuellen Positionen; nur bei Aenderung neu zentrieren.
+      const sig = bounds.map(b => b[0].toFixed(4) + "," + b[1].toFixed(4)).sort().join("|");
+      if (sig !== lastFitSig) {
+        lastFitSig = sig;
+        map.fitBounds(bounds, {
+          paddingTopLeft: MAP_CONFIG.padTopLeft,
+          paddingBottomRight: MAP_CONFIG.padBottomRight,
+          maxZoom: MAP_CONFIG.maxZoomOnBounds,
+          animate: false
+        });
+      }
     }
   }
 

@@ -378,6 +378,34 @@
     if ($("statusOverviewBackdrop")?.classList.contains("open")) renderStatusOverview();
   }
 
+  /* ---------- Test-Helfer: Position manuell setzen (Konsole) ----------
+     Beispiele in der Browser-Konsole:
+       FMSTest.koeln("Heros RS 21/10")           -> Fahrzeug nach Koeln, Status 3
+       FMSTest.setPos("Anh Boot", 51.20, 7.19, 4) -> freie Koordinaten + Status
+       FMSTest.clear("Heros RS 21/10")            -> Testposition wieder entfernen
+       FMSTest.clear()                            -> alle Testpositionen entfernen  */
+  function _setTestPos(name, lat, lng, status){
+    saveVehiclePosition(name, lat, lng);
+    if (status !== undefined) saveVehicleStatus(name, status);
+    if (FMS.Sync && FMS.Sync.publish) FMS.Sync.publish(name, { lat: lat, lng: lng, status: status });
+    refreshStatusUI();
+    if (window.MapModule && typeof window.MapModule.update === "function") window.MapModule.update();
+    console.log("[Test] Position gesetzt:", name, lat, lng, "Status", status);
+  }
+  window.FMSTest = {
+    setPos: _setTestPos,
+    koeln: (name, status) => _setTestPos(name, 50.9413, 6.9583, status === undefined ? 3 : status),
+    clear: (name) => {
+      try {
+        const p = JSON.parse(localStorage.getItem("FMS_VEHICLE_POSITIONS")) || {};
+        if (name) delete p[name]; else Object.keys(p).forEach(k => delete p[k]);
+        localStorage.setItem("FMS_VEHICLE_POSITIONS", JSON.stringify(p));
+      } catch(e) {}
+      if (window.MapModule && typeof window.MapModule.update === "function") window.MapModule.update();
+      console.log("[Test] Position(en) entfernt:", name || "(alle)");
+    }
+  };
+
   function toggleCustomSelect() {
     const cs = $("customSelect");
     if (!cs) return;
